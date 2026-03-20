@@ -10,7 +10,14 @@ target_compile_options(project_warnings INTERFACE
   $<$<COMPILE_LANGUAGE:CXX>:-Wall;-Wextra;-Wpedantic>
 )
 
-add_executable(snake src/game_driver.cpp)
+add_executable(snake
+    src/controller.cpp
+    src/event.cpp
+    src/main.cpp
+    src/model.cpp
+    src/snake.cpp
+    src/text_view.cpp
+)
 
 target_include_directories(snake PUBLIC
     include

@@ -1,15 +1,20 @@
 #pragma once
 
+#include <deque>
 
-#include "body.hpp"
-
+#include "coord.hpp"
 namespace snake_game {
 
-class Snake final : Body {
+class Snake final {
 public:
+    int8_t color_;
+    Direction dir_;
+    std::deque<Coord> body_;
 
-private:
-
+    Snake(Direction dir = Direction::UP);
+    
+    void ChangeDir(Direction dir);
+    void Move();
 };
 
 } //namespace snake_game

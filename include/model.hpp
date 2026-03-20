@@ -1,35 +1,61 @@
 #pragma once
 
+#include <chrono>
 #include <cstdint>
+#include <unistd.h>
 #include <vector>
 
-#include "snake.hpp"
 #include "rabbit.hpp"
-
+#include "snake.hpp"
+#include "coord.hpp"
 
 namespace snake_game {
 
-class Model {
+class Model
+{
 public:
-    Model(uint64_t width, uint64_t heigth,
-          uint64_t num_snake, uint64_t num_rabbits) :
-          width_(width), heigth_(heigth) 
+    enum class PlayersMode { SINGLE_PLAYER, TWO_PLAYER };
+
+    Model(Coord win_size = { DEFAULT_WIDTH, DEFAULT_HEIGTH },
+          int32_t num_snakes = DEFAULT_NUM_SNAKES,
+          int32_t num_rabbits = DEFAULT_NUM_RABBITS,
+          PlayersMode players_mode = PlayersMode::SINGLE_PLAYER  
+         );
+
+    void Update();
+
+    static const int32_t DEFAULT_WIDTH = 145;
+    static const int32_t DEFAULT_HEIGTH = 34;
+    static const int32_t DEFAULT_NUM_RABBITS = 3;
+    static const int32_t DEFAULT_NUM_SNAKES = 1;
+    struct Updates
     {
-        snakes_.reserve(num_snake);
-        rabits_.reserve(num_rabbits);
-    }
+        // color, position
+    };
 
-    ~Model() = default;
+    Coord win_size_;
 
-    void Update()
-    {
-
-    }
-
-private:
-    uint64_t width_, heigth_;
     std::vector<Snake> snakes_;
-    std::vector<Rabbit> rabits_;
+    std::vector<Rabbit> rabbits_;
+    PlayersMode players_mode_;
+
+    bool is_single_player() const noexcept;
+
+    // std::vector<Update> updates_; //TODO добавить изменения
+
+    std::chrono::milliseconds tic_time_{50};
+
+    struct Impl;
+    std::unique_ptr<Impl> impl_;
+};
+
+struct Model::Impl final
+{
+public:
+    Impl();
+    void SnakeAllocator(Snake& snake);
+private:
+
 };
 
 } // namespace snake_game

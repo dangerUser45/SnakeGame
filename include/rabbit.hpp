@@ -1,15 +1,13 @@
 #pragma once
 
 
-#include "body.hpp"
-
 namespace snake_game {
 
-class Rabbit final : Body {
+class Rabbit final {
 public:
 
 private:
-
+    
 };
 
 } // namespace snake_game
