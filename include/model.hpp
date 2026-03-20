@@ -17,18 +17,13 @@ public:
     enum class PlayersMode { SINGLE_PLAYER, TWO_PLAYER };
 
     Model(Coord win_size = { DEFAULT_WIDTH, DEFAULT_HEIGTH },
-          int32_t num_snakes = DEFAULT_NUM_SNAKES,
           int32_t num_rabbits = DEFAULT_NUM_RABBITS,
           PlayersMode players_mode = PlayersMode::SINGLE_PLAYER  
          );
 
     void Update();
 
-    static const int32_t DEFAULT_WIDTH = 145;
-    static const int32_t DEFAULT_HEIGTH = 34;
-    static const int32_t DEFAULT_NUM_RABBITS = 3;
-    static const int32_t DEFAULT_NUM_SNAKES = 1;
-    struct Updates
+     struct Updates
     {
         // color, position
     };
@@ -40,22 +35,52 @@ public:
     PlayersMode players_mode_;
 
     bool is_single_player() const noexcept;
+    void SnakeAllocator(Snake& snake);
+
+    struct Builder {
+
+        Coord win_size_ = { DEFAULT_WIDTH, DEFAULT_HEIGTH }; 
+
+        std::vector<Snake> snakes_;
+        std::vector<Rabbit> rabbits_;
+        PlayersMode players_mode_ = PlayersMode::SINGLE_PLAYER;
+
+        Builder() = default;
+
+        Builder& SetWinSize(Coord win_size) 
+        {
+            win_size_ = win_size;
+            return *this; 
+        }
+
+        Builder& SetNumRabbits(int32_t num_rabbits)
+        {
+            (void)num_rabbits;
+            // num_rabbits_ = num_rabbits;
+            return *this;
+        }
+
+        Builder& SetPlayersMode(PlayersMode players_mode)
+        {
+            players_mode_ = players_mode;
+            return *this;
+        }
+
+        Model Build() const
+        {
+            return Model();
+        }
+    };
 
     // std::vector<Update> updates_; //TODO добавить изменения
 
-    std::chrono::milliseconds tic_time_{50};
+    std::chrono::milliseconds tic_time_{100};
 
-    struct Impl;
-    std::unique_ptr<Impl> impl_;
-};
-
-struct Model::Impl final
-{
-public:
-    Impl();
-    void SnakeAllocator(Snake& snake);
 private:
-
+    static const int32_t DEFAULT_WIDTH       = 145;
+    static const int32_t DEFAULT_HEIGTH      = 34;
+    static const int32_t DEFAULT_NUM_RABBITS = 3;
+    static const int32_t DEFAULT_NUM_SNAKES  = 1;
 };
 
 } // namespace snake_game

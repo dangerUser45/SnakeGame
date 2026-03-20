@@ -15,6 +15,8 @@ public:
     
     void ChangeDir(Direction dir);
     void Move();
+
+    bool IsRotate180Degrees(Direction dir) const;
 };
 
 } //namespace snake_game
