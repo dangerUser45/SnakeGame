@@ -46,22 +46,22 @@ void Controller::ProcessEvents(const Event event)
             
             // Second Player
             case Event::KEY_PRESSED_P2_LEFT:
-                if(model_.is_single_player()) break;
+                if(model_.IsSinglePlayer()) break;
                 model_.snakes_[1].ChangeDir(Direction::LEFT);
                 break;
 
             case Event::KEY_PRESSED_P2_RIGHT:
-                if(model_.is_single_player()) break;
+                if(model_.IsSinglePlayer()) break;
                 model_.snakes_[1].ChangeDir(Direction::RIGHT);
                 break;
 
             case Event::KEY_PRESSED_P2_UP:
-                if(model_.is_single_player()) break;
+                if(model_.IsSinglePlayer()) break;
                 model_.snakes_[1].ChangeDir(Direction::UP);
                 break;
 
             case Event::KEY_PRESSED_P2_DOWN:
-                if(model_.is_single_player()) break;
+                if(model_.IsSinglePlayer()) break;
                 model_.snakes_[1].ChangeDir(Direction::DOWN);
                 break;
 

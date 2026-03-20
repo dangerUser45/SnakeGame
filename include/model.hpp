@@ -16,10 +16,7 @@ class Model
 public:
     enum class PlayersMode { SINGLE_PLAYER, TWO_PLAYER };
 
-    Model(Coord win_size = { DEFAULT_WIDTH, DEFAULT_HEIGTH },
-          int32_t num_rabbits = DEFAULT_NUM_RABBITS,
-          PlayersMode players_mode = PlayersMode::SINGLE_PLAYER  
-         );
+    Model(Coord win_size, PlayersMode players_mode);
 
     void Update();
 
@@ -29,20 +26,20 @@ public:
     };
 
     Coord win_size_;
+    PlayersMode players_mode_;
 
     std::vector<Snake> snakes_;
     std::vector<Rabbit> rabbits_;
-    PlayersMode players_mode_;
 
-    bool is_single_player() const noexcept;
-    void SnakeAllocator(Snake& snake);
+    bool IsSinglePlayer() const noexcept;
+    void SpawnFirstPlayerSnake(Snake& snake);
+    void SpawnSecondPlayerSnake(Snake& snake);
+
+    
 
     struct Builder {
 
-        Coord win_size_ = { DEFAULT_WIDTH, DEFAULT_HEIGTH }; 
-
-        std::vector<Snake> snakes_;
-        std::vector<Rabbit> rabbits_;
+        Coord win_size_ = { DEFAULT_WIDTH, DEFAULT_HEIGTH };
         PlayersMode players_mode_ = PlayersMode::SINGLE_PLAYER;
 
         Builder() = default;
@@ -68,19 +65,16 @@ public:
 
         Model Build() const
         {
-            return Model();
+            return Model(win_size_, players_mode_);
         }
     };
 
-    // std::vector<Update> updates_; //TODO добавить изменения
-
-    std::chrono::milliseconds tic_time_{100};
+    std::chrono::milliseconds tic_time_{200};
 
 private:
     static const int32_t DEFAULT_WIDTH       = 145;
     static const int32_t DEFAULT_HEIGTH      = 34;
     static const int32_t DEFAULT_NUM_RABBITS = 3;
-    static const int32_t DEFAULT_NUM_SNAKES  = 1;
 };
 
 } // namespace snake_game
