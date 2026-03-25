@@ -12,9 +12,11 @@ target_compile_options(project_warnings INTERFACE
 
 add_executable(snake
     src/controller.cpp
+    src/coord.cpp
     src/event.cpp
     src/main.cpp
     src/model.cpp
+    src/rabbit.cpp
     src/snake.cpp
     src/text_view.cpp
 )

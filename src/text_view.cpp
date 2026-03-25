@@ -63,8 +63,8 @@ DrawSnakeHead(Direction dir) const
 
 void TextView::Impl::DrawRabbit(const Rabbit& rabbit) const
 {
-    //TODO убрать заглушку
-    (void)rabbit;
+    GotoXY(rabbit.body_);
+    std::cout << glyphs::RABBIT_BODY;
 }
 
 void TextView::Impl::DrawBackground(const Coord win_size) const

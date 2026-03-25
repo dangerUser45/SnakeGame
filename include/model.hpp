@@ -25,56 +25,69 @@ public:
         // color, position
     };
 
+    using SnakeVec  = typename std::vector<Snake>;
+    using RabbitVec = typename std::vector<Rabbit>;
+
     Coord win_size_;
     PlayersMode players_mode_;
 
-    std::vector<Snake> snakes_;
-    std::vector<Rabbit> rabbits_;
+    SnakeVec  snakes_;
+    RabbitVec rabbits_;
+    std::size_t rabbits_per_snake_ = 3; // TODO добавить билдер для этого поля
+
+    std::chrono::milliseconds tic_time_{80};
+
+    struct Builder;
 
     bool IsSinglePlayer() const noexcept;
+
+    // TODO перенести эти функции по возможности в класс Snake
     void SpawnFirstPlayerSnake(Snake& snake);
     void SpawnSecondPlayerSnake(Snake& snake);
+    void SnakesUpdate();
+    bool SnakesOverlapped(Coord coord) const;
+    bool RabbitsOverlapped(Coord coord, std::vector<Rabbit>::const_iterator& rabbit_iter) const;
+    void BoundariesTeleportation(Snake& snake, Coord coord);
+    void EatingRabbits(Snake& snake, Coord coord);
+    void Crashes(std::vector<Snake>::iterator it, Coord new_head_coord);
 
-    
-
-    struct Builder {
-
-        Coord win_size_ = { DEFAULT_WIDTH, DEFAULT_HEIGTH };
-        PlayersMode players_mode_ = PlayersMode::SINGLE_PLAYER;
-
-        Builder() = default;
-
-        Builder& SetWinSize(Coord win_size) 
-        {
-            win_size_ = win_size;
-            return *this; 
-        }
-
-        Builder& SetNumRabbits(int32_t num_rabbits)
-        {
-            (void)num_rabbits;
-            // num_rabbits_ = num_rabbits;
-            return *this;
-        }
-
-        Builder& SetPlayersMode(PlayersMode players_mode)
-        {
-            players_mode_ = players_mode;
-            return *this;
-        }
-
-        Model Build() const
-        {
-            return Model(win_size_, players_mode_);
-        }
-    };
-
-    std::chrono::milliseconds tic_time_{200};
 
 private:
     static const int32_t DEFAULT_WIDTH       = 145;
     static const int32_t DEFAULT_HEIGTH      = 34;
     static const int32_t DEFAULT_NUM_RABBITS = 3;
+};
+
+struct Model::Builder {
+
+    Coord win_size_ = { DEFAULT_WIDTH, DEFAULT_HEIGTH };
+    PlayersMode players_mode_ = PlayersMode::SINGLE_PLAYER;
+
+    Builder() = default;
+
+    Builder& SetWinSize(Coord win_size) 
+    {
+        win_size_ = win_size;
+        return *this; 
+    }
+
+    Builder& SetNumRabbits(int32_t num_rabbits)
+    {
+        (void)num_rabbits;
+        // num_rabbits_ = num_rabbits;
+        return *this;
+    }
+
+    Builder& SetPlayersMode(PlayersMode players_mode)
+    {
+        players_mode_ = players_mode;
+        return *this;
+    }
+
+    Model Build() const
+    {
+        return Model(win_size_, players_mode_);
+    }
 };
 
 } // namespace snake_game

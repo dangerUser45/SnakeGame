@@ -10,6 +10,7 @@ public:
     int8_t color_;
     Direction dir_;
     std::deque<Coord> body_;
+    bool is_live_;
 
     Snake(Direction dir = Direction::UP);
     

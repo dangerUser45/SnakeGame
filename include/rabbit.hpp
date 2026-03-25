@@ -1,13 +1,13 @@
 #pragma once
 
+#include "coord.hpp"
 
 namespace snake_game {
 
 class Rabbit final {
 public:
-
-private:
-    
+    Coord body_;
+    Rabbit(Coord coord);
 };
 
 } // namespace snake_game

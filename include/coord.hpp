@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <random>
 
 namespace snake_game {
 
@@ -8,6 +9,12 @@ enum class Direction { LEFT, RIGHT, UP, DOWN };
     
 struct Coord {
     int32_t x,y;
+
+    bool operator ==(Coord& second) const {
+        if(this->x == second.x && this->y == second.y)
+            return true;
+        else return false;
+    }
     
     Coord& operator+=(Direction dir) {
         switch (dir) {
@@ -25,5 +32,7 @@ struct Coord {
         return new_coord;
     }
 };
+
+Coord GetRandomCoord(Coord borders);
 
 } // namespace snake_game
