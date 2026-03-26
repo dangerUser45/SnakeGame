@@ -6,7 +6,7 @@
 namespace snake_game {
 
 enum class Direction { LEFT, RIGHT, UP, DOWN };
-    
+
 struct Coord {
     int32_t x,y;
 

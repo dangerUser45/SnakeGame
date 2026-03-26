@@ -13,11 +13,14 @@ Model::Model(Coord win_size, PlayersMode players_mode) :
     // rabbits_.reserve(num_rabbits);
 
     snakes_.emplace_back();
-    SpawnFirstPlayerSnake(snakes_[0]);
+    SpawnFirstPlayerSnake(snakes_.front());
+    hcontrol_.emplace_back(&snakes_.front());
 
     if(!IsSinglePlayer()) {
         snakes_.emplace_back();
-        SpawnSecondPlayerSnake(snakes_[1]);
+        auto player2 = std::next(snakes_.begin(), 1);
+        SpawnSecondPlayerSnake(*player2);
+        hcontrol_.emplace_back(&(*player2));
     }
 }
 
@@ -26,8 +29,12 @@ void Model::Update()
     SnakesUpdate();
 
     // Moving snakes
-    snakes_[0].Move();
-    if(!IsSinglePlayer()) snakes_[1].Move();
+    if(hcontrol_[0])
+        hcontrol_[0]->Move();
+    
+    if(!IsSinglePlayer())
+        if(hcontrol_[1])
+            hcontrol_[1]->Move();
 
     // Generating and placement rabbits
     if(rabbits_.size() < rabbits_per_snake_ * snakes_.size()) {
@@ -86,13 +93,18 @@ bool Model::RabbitsOverlapped(Coord coord, std::vector<Rabbit>::const_iterator& 
     return false;
 }
 
-void Model::Crashes(std::vector<Snake>::iterator it, Coord new_head_coord)
+bool Model::Crashes(std::list<Snake>::iterator& it, Coord new_head_coord)
 {
     if(SnakesOverlapped(new_head_coord)) {
         // TODO добавить какую-нибудь надпись по типу: "О нет, змейка №X умерла!"
-        snakes_.erase(it);
+        ZeroizeHContrSnake(it);
+        it = snakes_.erase(it); // FIXME возможно стоит сделать обычный итератор вместо const_iterator
+
         /* DEBUG */  std::cout << "\033[" << win_size_.y + 2 << ";" << 2 << "H" << "Змейки столкнулись" << std::flush;
+
+        return true;
     }
+    return false;
 }
 
 void Model::BoundariesTeleportation(Snake& snake, Coord coord)
@@ -124,25 +136,33 @@ void Model::BoundariesTeleportation(Snake& snake, Coord coord)
 
 void Model::SnakesUpdate()
 {
-    for(auto  snake_it = snakes_.begin(), end = snakes_.end(); snake_it != end; ++snake_it) {
+    for(auto snake_it = snakes_.begin(), end = snakes_.end(); snake_it != end;) {
         Coord new_head_coord = snake_it->body_.front() + snake_it->dir_;
 
-        Crashes(snake_it, new_head_coord);
         EatingRabbits(*snake_it, new_head_coord);
         BoundariesTeleportation(*snake_it, new_head_coord);
+        
+        if(!Crashes(snake_it, new_head_coord)) ++snake_it;
     }
 }
 
 void Model::EatingRabbits(Snake& snake, Coord new_head_coord)
 {
-
     std::vector<Rabbit>::const_iterator iter;
     if(RabbitsOverlapped(new_head_coord, iter)) {
+
         rabbits_.erase(iter);
     
-        // вставляем пустой элемент, так как он съестся при Move()
+        // добавляем элемент в конец змейки, т.к. она съела кролика
         snake.body_.emplace_back();
     }
+}
+
+void Model::ZeroizeHContrSnake(std::list<Snake>::iterator it)
+{
+    for(auto&& elem : hcontrol_)
+        if(elem == &(*it))
+            elem = nullptr;
 }
 
 } // namespace snake_game

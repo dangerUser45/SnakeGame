@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <unistd.h>
 #include <vector>
+#include <list>
 
 #include "rabbit.hpp"
 #include "snake.hpp"
@@ -25,23 +26,20 @@ public:
         // color, position
     };
 
-    using SnakeVec  = typename std::vector<Snake>;
-    using RabbitVec = typename std::vector<Rabbit>;
-
     Coord win_size_;
     PlayersMode players_mode_;
 
-    SnakeVec  snakes_;
-    RabbitVec rabbits_;
-    std::size_t rabbits_per_snake_ = 3; // TODO добавить билдер для этого поля
-
-    std::chrono::milliseconds tic_time_{80};
+    std::list<Snake> snakes_;
+    std::vector<Rabbit> rabbits_;
+    std::vector<Snake*> hcontrol_;
+    std::chrono::milliseconds tic_time_{50};
+    std::size_t rabbits_per_snake_ = 6; // TODO добавить билдер для этого поля
 
     struct Builder;
 
     bool IsSinglePlayer() const noexcept;
-
-    // TODO перенести эти функции по возможности в класс Snake
+    
+private:
     void SpawnFirstPlayerSnake(Snake& snake);
     void SpawnSecondPlayerSnake(Snake& snake);
     void SnakesUpdate();
@@ -49,10 +47,9 @@ public:
     bool RabbitsOverlapped(Coord coord, std::vector<Rabbit>::const_iterator& rabbit_iter) const;
     void BoundariesTeleportation(Snake& snake, Coord coord);
     void EatingRabbits(Snake& snake, Coord coord);
-    void Crashes(std::vector<Snake>::iterator it, Coord new_head_coord);
+    bool Crashes(std::list<Snake>::iterator& it, Coord new_head_coord);
+    void ZeroizeHContrSnake(std::list<Snake>::iterator it);
 
-
-private:
     static const int32_t DEFAULT_WIDTH       = 145;
     static const int32_t DEFAULT_HEIGTH      = 34;
     static const int32_t DEFAULT_NUM_RABBITS = 3;

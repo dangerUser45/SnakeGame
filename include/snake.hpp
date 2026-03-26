@@ -10,14 +10,12 @@ public:
     int8_t color_;
     Direction dir_;
     std::deque<Coord> body_;
-    bool is_live_;
+    bool is_live = true;
 
     Snake(Direction dir = Direction::UP);
     
     void ChangeDir(Direction dir);
     void Move();
-
-    bool IsRotate180Degrees(Direction dir) const;
 };
 
 } //namespace snake_game

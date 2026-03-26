@@ -264,7 +264,6 @@ void TextView::Render(Model& model)
     for(auto&& rabbit : model.rabbits_)
         impl_->DrawRabbit(rabbit);
 
-
     std::cout << std::flush;
 }
 

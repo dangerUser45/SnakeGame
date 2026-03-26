@@ -27,46 +27,51 @@ void Controller::Run()
 void Controller::ProcessEvents(const Event event)
 {
     if(!is_game_paused) {
-        switch(event) {
-            // First Player
-            case Event::KEY_PRESSED_P1_LEFT:
-                model_.snakes_[0].ChangeDir(Direction::LEFT);
-                break;
 
-            case Event::KEY_PRESSED_P1_RIGHT:
-                model_.snakes_[0].ChangeDir(Direction::RIGHT);
-                break;
+        if(model_.hcontrol_[0])
+            switch(event) {
+                // First Player
+                case Event::KEY_PRESSED_P1_LEFT:
+                    model_.hcontrol_[0]->ChangeDir(Direction::LEFT);
+                    break;
 
-            case Event::KEY_PRESSED_P1_UP:
-                model_.snakes_[0].ChangeDir(Direction::UP);
-                break;
-            case Event::KEY_PRESSED_P1_DOWN:
-                model_.snakes_[0].ChangeDir(Direction::DOWN);
-                break;
-            
-            // Second Player
-            case Event::KEY_PRESSED_P2_LEFT:
-                if(model_.IsSinglePlayer()) break;
-                model_.snakes_[1].ChangeDir(Direction::LEFT);
-                break;
+                case Event::KEY_PRESSED_P1_RIGHT:
+                    model_.hcontrol_[0]->ChangeDir(Direction::RIGHT);
+                    break;
 
-            case Event::KEY_PRESSED_P2_RIGHT:
-                if(model_.IsSinglePlayer()) break;
-                model_.snakes_[1].ChangeDir(Direction::RIGHT);
-                break;
+                case Event::KEY_PRESSED_P1_UP:
+                    model_.hcontrol_[0]->ChangeDir(Direction::UP);
+                    break;
 
-            case Event::KEY_PRESSED_P2_UP:
-                if(model_.IsSinglePlayer()) break;
-                model_.snakes_[1].ChangeDir(Direction::UP);
-                break;
+                case Event::KEY_PRESSED_P1_DOWN:
+                    model_.hcontrol_[0]->ChangeDir(Direction::DOWN);
+                    break;
 
-            case Event::KEY_PRESSED_P2_DOWN:
-                if(model_.IsSinglePlayer()) break;
-                model_.snakes_[1].ChangeDir(Direction::DOWN);
-                break;
+                default: break;
+            }
+        
+        if(!model_.IsSinglePlayer())
+            if(model_.hcontrol_[1])
+                switch(event) {
+                    // Second Player
+                    case Event::KEY_PRESSED_P2_LEFT:
+                        model_.hcontrol_[1]->ChangeDir(Direction::LEFT);
+                        break;
 
-            default: break;
-        }
+                    case Event::KEY_PRESSED_P2_RIGHT:
+                        model_.hcontrol_[1]->ChangeDir(Direction::RIGHT);
+                        break;
+
+                    case Event::KEY_PRESSED_P2_UP:
+                        model_.hcontrol_[1]->ChangeDir(Direction::UP);
+                        break;
+
+                    case Event::KEY_PRESSED_P2_DOWN:
+                        model_.hcontrol_[1]->ChangeDir(Direction::DOWN);
+                        break;
+
+                    default: break;
+                }
     }
 
     switch(event) {
