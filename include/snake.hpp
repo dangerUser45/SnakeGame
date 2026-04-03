@@ -1,19 +1,22 @@
 #pragma once
 
 #include <deque>
+#include <functional>
 
 #include "coord.hpp"
+#include "decor.hpp"
 namespace snake_game {
 
-class Snake final {
+class Snake  {
 public:
-    int8_t color_;
     Direction dir_;
-    std::deque<Coord> body_;
-    bool is_live = true;
+    std::deque<Coord> body_{};
+    std::function<Direction()> move_algorythm_{};
+    ObjColor color_{};
 
     Snake(Direction dir = Direction::UP);
     
+    Direction GetRandomDirection();
     void ChangeDir(Direction dir);
     void Move();
 };

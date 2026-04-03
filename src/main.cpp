@@ -1,31 +1,32 @@
+#include <exception>
 #include <getopt.h>
 
-#include "view.hpp"
+#include "terminal_view.hpp"
 #include "controller.hpp"
+#include "options.hpp"
 #include "model.hpp"
 
 int main(int argc, char** argv)
 {
     using namespace snake_game;
+    Options opt{};
+    try {
+        GetOptions(argc, argv, opt);
+    }
+    catch(const std::exception& e) {
+        std::cerr << e.what() << std::endl;
+        return 1;
+    }
 
-    /* TODO добавить опции:
-        1) количество игроков-змеек
-        2) количество ботов-змеек
-        3) количество кроликов на одну змейку
-        4) размер экрана Width x Heigth
-        5) умность ботов
-    */
-
-    // GetOptions();
-
-    // TODO добавить проверки в builer (по типу неверн. размер окна, отриц. кол-во змеек и т.д.)
     Model model = Model::Builder()
-    // .SetWinSize({70, 30})
-    .SetPlayersMode(Model::PlayersMode::TWO_PLAYER)
+    .SetWinSize(opt.win_size)
+    .SetNumBots(opt.num_bots)
+    .SetRabbPerSnake(opt.rabb_per_snake)
+    .SetPlayersMode(opt.players_mode)
     .Build();
 
-    TextView txt_view{};
+    TerminalView terminal_view{};
 
-    Controller contoller{model, txt_view};
+    Controller contoller{model, terminal_view};
     contoller.Run();
 }

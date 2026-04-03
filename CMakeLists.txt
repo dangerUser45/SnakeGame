@@ -7,7 +7,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 add_library(project_warnings INTERFACE)
 target_compile_options(project_warnings INTERFACE
-  $<$<COMPILE_LANGUAGE:CXX>:-Wall;-Wextra;-Wpedantic>
+  $<$<COMPILE_LANGUAGE:CXX>:-Weffc++;-Wall;-Wextra;-Wshadow;-Wpedantic>
 )
 
 add_executable(snake
@@ -16,9 +16,11 @@ add_executable(snake
     src/event.cpp
     src/main.cpp
     src/model.cpp
+    src/model_builder.cpp
+    src/options.cpp
     src/rabbit.cpp
     src/snake.cpp
-    src/text_view.cpp
+    src/terminal_view.cpp
 )
 
 target_include_directories(snake PUBLIC

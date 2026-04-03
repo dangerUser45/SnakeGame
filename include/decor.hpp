@@ -1,6 +1,11 @@
 #pragma once
 
+#include <cstdint>
 #include <string_view>
+
+namespace snake_game {
+    enum class ObjColor : std::uint8_t { RED, GREEN, BLUE, YELLOW, PURPLE, BROWN, COUNT };
+} // namespace snake_game
 
 namespace snake_game::glyphs {
 
@@ -19,4 +24,4 @@ namespace snake_game::glyphs {
     inline constexpr std::string_view CORNER_BOTTOM_LEFT  = "╰";
     inline constexpr std::string_view CORNER_BOTTOM_RIGHT = "╯";
 
-} // namespace snake_game
+} // namespace snake_game::glyphs

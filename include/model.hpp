@@ -12,16 +12,24 @@
 
 namespace snake_game {
 
+Direction RotateDir(Direction dir);
+
 class Model
 {
 public:
-    enum class PlayersMode { SINGLE_PLAYER, TWO_PLAYER };
+    enum class PlayersMode : std::uint8_t { SINGLE_PLAYER, TWO_PLAYERS, UNDEFINED };
 
-    Model(Coord win_size, PlayersMode players_mode);
+    static constexpr const int   UNDEFINED_NUM   = -1;
+    static constexpr const Coord UNDEFINED_COORD = { -1, -1 };
+
+    Model(Coord win_size,
+          int num_bots,
+          int rabb_per_snake,
+          PlayersMode player_mode);
 
     void Update();
 
-     struct Updates
+    struct Updates
     {
         // color, position
     };
@@ -29,62 +37,55 @@ public:
     Coord win_size_;
     PlayersMode players_mode_;
 
-    std::list<Snake> snakes_;
-    std::vector<Rabbit> rabbits_;
-    std::vector<Snake*> hcontrol_;
+    std::list<Snake> snakes_{};
+    std::vector<Rabbit> rabbits_{};
+    std::vector<Snake*> hcontrol_{};
     std::chrono::milliseconds tic_time_{50};
-    std::size_t rabbits_per_snake_ = 6; // TODO добавить билдер для этого поля
+    int rabb_per_snake_;
 
     struct Builder;
 
     bool IsSinglePlayer() const noexcept;
     
 private:
+    void SnakesUpdate();
+    
+    void SpawnNewSnake(Snake& snake);
     void SpawnFirstPlayerSnake(Snake& snake);
     void SpawnSecondPlayerSnake(Snake& snake);
-    void SnakesUpdate();
+    
+    void InsertSnake(Snake& snake, bool& is_located, Coord second_part, Coord third_part);
+    void GenerateRabbits();
+
     bool SnakesOverlapped(Coord coord) const;
     bool RabbitsOverlapped(Coord coord, std::vector<Rabbit>::const_iterator& rabbit_iter) const;
-    void BoundariesTeleportation(Snake& snake, Coord coord);
-    void EatingRabbits(Snake& snake, Coord coord);
+    
     bool Crashes(std::list<Snake>::iterator& it, Coord new_head_coord);
     void ZeroizeHContrSnake(std::list<Snake>::iterator it);
+    void EatingRabbits(Snake& snake, Coord coord);
+    void BoundariesTeleportation(Snake& snake, Coord coord);
+    void FillSnakesColor();
 
-    static const int32_t DEFAULT_WIDTH       = 145;
-    static const int32_t DEFAULT_HEIGTH      = 34;
-    static const int32_t DEFAULT_NUM_RABBITS = 3;
+    static constexpr const int DEFAULT_WIDTH           = 145;
+    static constexpr const int DEFAULT_HEIGTH          = 34;
+    static constexpr const int DEFAULT_NUM_BOTS        = 2;
+    static constexpr const int DEFAULT_RABB_PER_SNAKES = 5;
 };
 
 struct Model::Builder {
 
-    Coord win_size_ = { DEFAULT_WIDTH, DEFAULT_HEIGTH };
+    Coord win_size_           = { DEFAULT_WIDTH, DEFAULT_HEIGTH };
+    int num_bots_             = DEFAULT_NUM_BOTS;
+    int rabb_per_snake_       = DEFAULT_RABB_PER_SNAKES;
     PlayersMode players_mode_ = PlayersMode::SINGLE_PLAYER;
 
     Builder() = default;
 
-    Builder& SetWinSize(Coord win_size) 
-    {
-        win_size_ = win_size;
-        return *this; 
-    }
-
-    Builder& SetNumRabbits(int32_t num_rabbits)
-    {
-        (void)num_rabbits;
-        // num_rabbits_ = num_rabbits;
-        return *this;
-    }
-
-    Builder& SetPlayersMode(PlayersMode players_mode)
-    {
-        players_mode_ = players_mode;
-        return *this;
-    }
-
-    Model Build() const
-    {
-        return Model(win_size_, players_mode_);
-    }
+    Builder& SetWinSize(Coord win_size);
+    Builder& SetNumBots(int num_bots);
+    Builder& SetRabbPerSnake(int rabb_per_snake);
+    Builder& SetPlayersMode(PlayersMode players_mode);
+    Model Build() const;
 };
 
 } // namespace snake_game

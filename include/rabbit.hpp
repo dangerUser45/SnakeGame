@@ -6,7 +6,7 @@ namespace snake_game {
 
 class Rabbit final {
 public:
-    Coord body_;
+    Coord body_{};
     Rabbit(Coord coord);
 };
 

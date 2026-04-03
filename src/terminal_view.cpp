@@ -1,55 +1,76 @@
-#include <memory>
 #include <optional>
 #include <iostream>
+#include <stdlib.h>
+#include <termios.h>
+#include <fcntl.h>
 
-#include "view.hpp"
+#include "terminal_view.hpp"
 #include "decor.hpp"
 
 namespace snake_game {
 
-TextView::TextView() : impl_(std::make_unique<Impl>())
+TerminalView::TerminalView() : impl_(std::make_unique<Impl>())
 {
     impl_->SetupTerminal();
     impl_->ClearScreen();
     impl_->HideCursor();
 }
 
-TextView::~TextView()
+TerminalView::~TerminalView()
 {
     impl_->RestoreTerminal();
     impl_->ClearScreen();
     impl_->ShowCursor();
 }
 
-void TextView::Impl::GotoXY(Coord coord) const
+void TerminalView::Impl::GotoXY(Coord coord) const
 {
     std::cout << "\033[" << coord.y + 1 << ";" << coord.x + 1 << "H";
 }
 
-void TextView::Impl::GotoXY(int32_t x, int32_t y) const
+void TerminalView::Impl::GotoXY(int x, int y) const
 {
     std::cout << "\033[" << y + 1 << ";" << x + 1 << "H";
 }
 
-void TextView::Impl::ClearScreen()
+void TerminalView::Impl::ClearScreen()
 {
     std::cout << "\033[H\033[J";
 }
 
-void TextView::Impl::DrawSnake(const Snake& snake) const
+namespace {
+    using namespace std::literals;
+    inline constexpr std::array color_array {
+        "\033[31m"sv, // Red
+        "\033[32m"sv, // Green
+        "\033[33m"sv, // Yellow
+        "\033[34m"sv, // Blue
+        "\033[36m"sv  // Cyan
+  };
+
+  inline constexpr std::string_view ResetColor{"\033[0m"};
+}
+
+std::string_view TerminalView::Impl::GetTerminalColor(ObjColor color) const
+{
+    return color_array[static_cast<uint8_t>(color)];
+}
+
+void TerminalView::Impl::DrawSnake(const Snake& snake) const
 {
     Coord snake_head = snake.body_.front();
     GotoXY(snake_head);
-    std::cout << DrawSnakeHead(snake.dir_);
+    const std::string_view snake_color = GetTerminalColor(snake.color_);
+    std::cout << snake_color << DrawSnakeHead(snake.dir_) << ResetColor;
 
     for(auto it = snake.body_.cbegin() + 1,
               end = snake.body_.cend(); it != end; ++it) {
         GotoXY(*it);
-        std::cout << glyphs::SNAKE_BODY;
+        std::cout << snake_color << glyphs::SNAKE_BODY << ResetColor;
     }
 }
 
-const std::string_view TextView::Impl::
+const std::string_view TerminalView::Impl::
 DrawSnakeHead(Direction dir) const
 {
     switch(dir){
@@ -57,28 +78,30 @@ DrawSnakeHead(Direction dir) const
         case Direction::RIGHT: return glyphs::HEAD_RIGHT; break;
         case Direction::UP:    return glyphs::HEAD_UP;    break;
         case Direction::DOWN:  return glyphs::HEAD_DOWN;  break;
-        // TODO добавить default и его обработку
+
+        default: std::cerr << "Error unknown options" << std::endl;
+            std::exit(1); // TODO как-нибудь нормально исправить
     }
 }
 
-void TextView::Impl::DrawRabbit(const Rabbit& rabbit) const
+void TerminalView::Impl::DrawRabbit(const Rabbit& rabbit) const
 {
     GotoXY(rabbit.body_);
     std::cout << glyphs::RABBIT_BODY;
 }
 
-void TextView::Impl::DrawBackground(const Coord win_size) const
+void TerminalView::Impl::DrawBackground(const Coord win_size) const
 {
-    int32_t init_x = 0;
-    int32_t init_y = 0;
+    int init_x = 0;
+    int init_y = 0;
 
     GotoXY(init_x, init_y);
     std::cout << glyphs::CORNER_TOP_LEFT;
-    for(int32_t i = 0; i < win_size.x - 2; ++i)
+    for(int i = 0; i < win_size.x - 2; ++i)
         std::cout << glyphs::BORDER_HOR;
     std::cout << glyphs::CORNER_TOP_RIGHT;
 
-    for(int32_t i = 0; i < win_size.y - 2; ++i) {
+    for(int i = 0; i < win_size.y - 2; ++i) {
         GotoXY(init_x, init_y + 1 + i);
         std::cout << glyphs::BORDER_VERT;
         GotoXY(init_x + win_size.x - 1, init_y + 1 + i);
@@ -87,17 +110,13 @@ void TextView::Impl::DrawBackground(const Coord win_size) const
 
     GotoXY(init_x, init_y + win_size.y - 1);
     std::cout << glyphs::CORNER_BOTTOM_LEFT;
-    for(int32_t i = 0; i < win_size.x - 2; ++i)
+    for(int i = 0; i < win_size.x - 2; ++i)
         std::cout << glyphs::BORDER_HOR;
     std::cout << glyphs::CORNER_BOTTOM_RIGHT;
 }
 
-void TextView::Impl::SetupTerminal()
+void TerminalView::Impl::SetupTerminal()
 {
-    if (is_terminal_configured_) {
-        return;
-    }
-
     tcgetattr(STDIN_FILENO, &old_term_);
     termios new_term = old_term_;
 
@@ -107,36 +126,28 @@ void TextView::Impl::SetupTerminal()
 
     int flags = fcntl(STDIN_FILENO, F_GETFL, 0);
     fcntl(STDIN_FILENO, F_SETFL, flags | O_NONBLOCK);
-
-    is_terminal_configured_ = true;
 }
 
-void TextView::Impl::RestoreTerminal()
+void TerminalView::Impl::RestoreTerminal()
 {
-    if (!is_terminal_configured_) {
-        return;
-    }
-
     tcsetattr(STDIN_FILENO, TCSANOW, &old_term_);
 
     int flags = fcntl(STDIN_FILENO, F_GETFL, 0);
     flags &= ~O_NONBLOCK;
     fcntl(STDIN_FILENO, F_SETFL, flags);
-
-    is_terminal_configured_ = false;
 }
 
-void TextView::Impl::HideCursor() const
+void TerminalView::Impl::HideCursor() const
 {
     std::cout << "\033[?25l" << std::flush;
 }
 
-void TextView::Impl::ShowCursor() const
+void TerminalView::Impl::ShowCursor() const
 {
     std::cout << "\033[?25h" << std::flush;
 }
 
-std::optional<Event> TextView::Impl::PopNextEvent()
+std::optional<Event> TerminalView::Impl::PopNextEvent()
 {
       if (events_.empty()) {
           return std::nullopt;
@@ -147,7 +158,7 @@ std::optional<Event> TextView::Impl::PopNextEvent()
       return event;
 }
 
-void TextView::Impl::UpdateEventsBuffer()
+void TerminalView::Impl::UpdateEventsBuffer()
 {
     fd_set readfds;
     FD_ZERO(&readfds);
@@ -242,7 +253,7 @@ sizeof(buffer));
     }
 }
 
-std::optional<Event> TextView::PollEvents()
+std::optional<Event> TerminalView::PollEvents()
 {
     if (auto event = impl_->PopNextEvent()) {
         return event;
@@ -252,11 +263,15 @@ std::optional<Event> TextView::PollEvents()
     return impl_->PopNextEvent();
 }
 
-void TextView::Render(Model& model)
+void TerminalView::Render(Model& model)
 {
-    impl_->ClearScreen();
+    // TODO добавить updates
+    // impl_->ClearScreen();
 
-    impl_->DrawBackground(model.win_size_);
+    if(impl_->is_init_drawing_) {
+        impl_->DrawBackground(model.win_size_);
+        impl_->is_init_drawing_ = false;
+    }
 
     for(auto&& snake : model.snakes_)
         impl_->DrawSnake(snake);

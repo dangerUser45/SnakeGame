@@ -1,14 +1,13 @@
 #pragma once
 
-#include <cstdint>
-#include <random>
+#include <iostream>
 
 namespace snake_game {
 
-enum class Direction { LEFT, RIGHT, UP, DOWN };
+enum class Direction { UNKNOWN, LEFT, RIGHT, UP, DOWN };
 
 struct Coord {
-    int32_t x,y;
+    int x,y;
 
     bool operator ==(Coord& second) const {
         if(this->x == second.x && this->y == second.y)
@@ -22,6 +21,9 @@ struct Coord {
             case Direction::DOWN:  ++y; break;
             case Direction::RIGHT: ++x; break;
             case Direction::LEFT:  --x; break;
+
+            default: std::cerr << "Error: uknown directions" << std::endl;
+                return *this;
         }
         return *this;
     }
@@ -34,5 +36,6 @@ struct Coord {
 };
 
 Coord GetRandomCoord(Coord borders);
+Direction GetRandomDirection();
 
 } // namespace snake_game
