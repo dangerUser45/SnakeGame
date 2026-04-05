@@ -11,8 +11,8 @@ class Controller final {
 private:
     Model& model_;
     View& view_;
-    bool game_over_ = false;
-    bool is_game_paused = false;
+    bool should_exit_ = false;
+    bool is_game_paused_ = false;
 
 public:
     Controller(Model& model,

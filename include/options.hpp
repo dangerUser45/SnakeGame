@@ -9,10 +9,10 @@
 namespace snake_game {
 
 struct Options final {
-    Model::PlayersMode players_mode = Model::PlayersMode::UNDEFINED;
-    int num_bots            = Model::UNDEFINED_NUM;
-    int rabb_per_snake      = Model::UNDEFINED_NUM;
-    Coord win_size                  = Model::UNDEFINED_COORD;
+    int num_players    =   Model::UNDEFINED_NUM;
+    int num_bots       =   Model::UNDEFINED_NUM;
+    int rabb_per_snake =   Model::UNDEFINED_NUM;
+    Coord win_size     = { Model::UNDEFINED_NUM, Model::UNDEFINED_NUM };
 };
 
 void GetOptions(int argc, char** argv, Options& options);

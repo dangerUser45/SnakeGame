@@ -1,8 +1,9 @@
 #pragma once
 
 #include <chrono>
-#include <cstdint>
+#include <random>
 #include <unistd.h>
+#include <utility>
 #include <vector>
 #include <list>
 
@@ -17,17 +18,15 @@ Direction RotateDir(Direction dir);
 class Model
 {
 public:
-    enum class PlayersMode : std::uint8_t { SINGLE_PLAYER, TWO_PLAYERS, UNDEFINED };
-
     static constexpr const int   UNDEFINED_NUM   = -1;
-    static constexpr const Coord UNDEFINED_COORD = { -1, -1 };
 
     Model(Coord win_size,
+          int num_players,
           int num_bots,
-          int rabb_per_snake,
-          PlayersMode player_mode);
+          int rabb_per_snake);
 
     void Update();
+    bool IsGameOver();
 
     struct Updates
     {
@@ -35,30 +34,36 @@ public:
     };
 
     Coord win_size_;
-    PlayersMode players_mode_;
+
+    using SnakeIterT = typename std::list<Snake>::iterator;
 
     std::list<Snake> snakes_{};
     std::vector<Rabbit> rabbits_{};
     std::vector<Snake*> hcontrol_{};
     std::chrono::milliseconds tic_time_{50};
+    int num_players_;
+    int num_bots_;
     int rabb_per_snake_;
 
-    struct Builder;
+    std::mt19937 gen_{std::random_device{}()};
 
-    bool IsSinglePlayer() const noexcept;
+    struct Builder;
     
 private:
     void SnakesUpdate();
-    
-    void SpawnNewSnake(Snake& snake);
-    void SpawnFirstPlayerSnake(Snake& snake);
-    void SpawnSecondPlayerSnake(Snake& snake);
-    
-    void InsertSnake(Snake& snake, bool& is_located, Coord second_part, Coord third_part);
+    void SpawnNewSnake(Snake& snake, int* counter);
+    void InsertSnake(Snake& snake,
+                     Coord head, Coord second_part, Coord third_part);
     void GenerateRabbits();
+    std::pair<Coord, Coord> GetSector(int snake_num);
 
     bool SnakesOverlapped(Coord coord) const;
+    bool SnakesOverlapped(Coord coord, std::list<Snake>::iterator& current_snake) const;
     bool RabbitsOverlapped(Coord coord, std::vector<Rabbit>::const_iterator& rabbit_iter) const;
+    bool RabbitsOverlapped(Coord coord) const;
+
+    void MoveSnakes();
+    void RemoveDeadSnakes();
     
     bool Crashes(std::list<Snake>::iterator& it, Coord new_head_coord);
     void ZeroizeHContrSnake(std::list<Snake>::iterator it);
@@ -66,25 +71,28 @@ private:
     void BoundariesTeleportation(Snake& snake, Coord coord);
     void FillSnakesColor();
 
+    bool game_over_ = false;
+
     static constexpr const int DEFAULT_WIDTH           = 145;
     static constexpr const int DEFAULT_HEIGTH          = 34;
     static constexpr const int DEFAULT_NUM_BOTS        = 2;
     static constexpr const int DEFAULT_RABB_PER_SNAKES = 5;
+    static constexpr const int DEFAULT_NUM_PLAYERS     = 1;
 };
 
 struct Model::Builder {
 
     Coord win_size_           = { DEFAULT_WIDTH, DEFAULT_HEIGTH };
-    int num_bots_             = DEFAULT_NUM_BOTS;
-    int rabb_per_snake_       = DEFAULT_RABB_PER_SNAKES;
-    PlayersMode players_mode_ = PlayersMode::SINGLE_PLAYER;
+    int num_bots_             =   DEFAULT_NUM_BOTS;
+    int rabb_per_snake_       =   DEFAULT_RABB_PER_SNAKES;
+    int num_players_          =   DEFAULT_NUM_PLAYERS;
 
     Builder() = default;
 
     Builder& SetWinSize(Coord win_size);
     Builder& SetNumBots(int num_bots);
     Builder& SetRabbPerSnake(int rabb_per_snake);
-    Builder& SetPlayersMode(PlayersMode players_mode);
+    Builder& SetNumPlayers(int num_players);
     Model Build() const;
 };
 

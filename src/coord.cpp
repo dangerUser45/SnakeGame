@@ -4,20 +4,16 @@
 
 namespace snake_game {
 
-Coord GetRandomCoord(Coord border)
+Coord GetRandomCoord(Coord left_top_corner, Coord right_bottom_corner, std::mt19937& gen)
 {
-    static std::mt19937 gen(std::random_device{}());
-
-    std::uniform_int_distribution<int> dist_x(1, border.x - 2);
-    std::uniform_int_distribution<int> dist_y(1, border.y - 2);
+    std::uniform_int_distribution<int> dist_x(left_top_corner.x, right_bottom_corner.x);
+    std::uniform_int_distribution<int> dist_y(left_top_corner.y, right_bottom_corner.y);
 
     return {dist_x(gen), dist_y(gen)};
 }
 
-Direction GetRandomDirection()
+Direction GetRandomDirection(std::mt19937& gen)
 {
-    static std::mt19937 gen(std::random_device{}());
-
     std::uniform_int_distribution<int> number(0, 3);
 
     switch(number(gen)) {
@@ -29,6 +25,11 @@ Direction GetRandomDirection()
         default: std::cerr << "Error: Unknown direction" << std::endl;
             return Direction::UNKNOWN;
     }
+}
+
+std::ostream& operator<< (std::ostream& os, const Coord& coord)
+{
+    return os << "{" << coord.x << ", " << coord.y << "}";
 }
 
 } // namespace snake_game

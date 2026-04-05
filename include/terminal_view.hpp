@@ -50,22 +50,4 @@ public:
     std::optional<Event> PopNextEvent();
 };
 
-class GraphicalView final : public View {
-public:
-    // TODO: сделать ф-цию для graphview
-    std::optional<Event> PollEvents() override
-    {
-        return std::nullopt;
-    }
-
-    void Render( Model& model) override
-    {
-        //TODO убрать заглушку
-        (void) model;
-    }
-
-private:
-
-};
-
 } // namespace snake_game

@@ -4,7 +4,7 @@
 #include <string_view>
 
 namespace snake_game {
-    enum class ObjColor : std::uint8_t { RED, GREEN, BLUE, YELLOW, PURPLE, BROWN, COUNT };
+    enum class ObjColor : std::uint8_t { RED, GREEN, ORANGE, BLUE, PURPLE, LIGHT_BLUE, COUNT };
 } // namespace snake_game
 
 namespace snake_game::glyphs {

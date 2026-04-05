@@ -9,24 +9,26 @@
 int main(int argc, char** argv)
 {
     using namespace snake_game;
-    Options opt{};
+    
     try {
+        Options opt{};
         GetOptions(argc, argv, opt);
+
+        Model model = Model::Builder()
+        .SetWinSize(opt.win_size)
+        .SetNumPlayers(opt.num_players)
+        .SetNumBots(opt.num_bots)
+        .SetRabbPerSnake(opt.rabb_per_snake)
+        .Build();
+
+        TerminalView terminal_view{};
+
+        Controller contoller{model, terminal_view};
+        contoller.Run();
+        
     }
     catch(const std::exception& e) {
         std::cerr << e.what() << std::endl;
         return 1;
     }
-
-    Model model = Model::Builder()
-    .SetWinSize(opt.win_size)
-    .SetNumBots(opt.num_bots)
-    .SetRabbPerSnake(opt.rabb_per_snake)
-    .SetPlayersMode(opt.players_mode)
-    .Build();
-
-    TerminalView terminal_view{};
-
-    Controller contoller{model, terminal_view};
-    contoller.Run();
 }

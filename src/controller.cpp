@@ -12,12 +12,15 @@ Controller::Controller(Model& model, View& view)
 
 void Controller::Run()
 {
-    while (!game_over_) {
+    while (!should_exit_) {
         while (std::optional<Event> event = view_.PollEvents())
             ProcessEvents(*event);
         
-        if(!is_game_paused)
+        if(!is_game_paused_) {
             model_.Update();
+            if(model_.IsGameOver())
+                should_exit_ = true;
+        }
         
         view_.Render(model_);
         std::this_thread::sleep_for(model_.tic_time_);
@@ -26,31 +29,31 @@ void Controller::Run()
 
 void Controller::ProcessEvents(const Event event)
 {
-    if(!is_game_paused) {
+    if(!is_game_paused_) {
+        if(model_.num_players_ >= 1)
+            if(model_.hcontrol_[0])
+                switch(event) {
+                    // First Player
+                    case Event::KEY_PRESSED_P1_LEFT:
+                        model_.hcontrol_[0]->ChangeDir(Direction::LEFT);
+                        break;
 
-        if(model_.hcontrol_[0])
-            switch(event) {
-                // First Player
-                case Event::KEY_PRESSED_P1_LEFT:
-                    model_.hcontrol_[0]->ChangeDir(Direction::LEFT);
-                    break;
+                    case Event::KEY_PRESSED_P1_RIGHT:
+                        model_.hcontrol_[0]->ChangeDir(Direction::RIGHT);
+                        break;
 
-                case Event::KEY_PRESSED_P1_RIGHT:
-                    model_.hcontrol_[0]->ChangeDir(Direction::RIGHT);
-                    break;
+                    case Event::KEY_PRESSED_P1_UP:
+                        model_.hcontrol_[0]->ChangeDir(Direction::UP);
+                        break;
 
-                case Event::KEY_PRESSED_P1_UP:
-                    model_.hcontrol_[0]->ChangeDir(Direction::UP);
-                    break;
+                    case Event::KEY_PRESSED_P1_DOWN:
+                        model_.hcontrol_[0]->ChangeDir(Direction::DOWN);
+                        break;
 
-                case Event::KEY_PRESSED_P1_DOWN:
-                    model_.hcontrol_[0]->ChangeDir(Direction::DOWN);
-                    break;
-
-                default: break;
-            }
+                    default: break;
+                }
         
-        if(!model_.IsSinglePlayer())
+        if(model_.num_players_ == 2)
             if(model_.hcontrol_[1])
                 switch(event) {
                     // Second Player
@@ -77,11 +80,11 @@ void Controller::ProcessEvents(const Event event)
     switch(event) {
         // Menu actions
         case Event::KEY_PRESSED_PAUSE:
-            is_game_paused = !is_game_paused;
+            is_game_paused_ = !is_game_paused_;
             break;
 
         case Event::KEY_PRESSED_EXIT:
-            game_over_ = true;
+            should_exit_ = true;
             break;
         case Event::RESIZE_WINDOW:
             break; // TODO добавить обработку

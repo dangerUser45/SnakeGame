@@ -41,11 +41,12 @@ void TerminalView::Impl::ClearScreen()
 namespace {
     using namespace std::literals;
     inline constexpr std::array color_array {
-        "\033[31m"sv, // Red
-        "\033[32m"sv, // Green
-        "\033[33m"sv, // Yellow
-        "\033[34m"sv, // Blue
-        "\033[36m"sv  // Cyan
+        "\033[91m"sv, // Red
+        "\033[92m"sv, // Green
+        "\033[93m"sv, // Orange
+        "\033[94m"sv, // Blue
+        "\033[95m"sv, // Purple
+        "\033[96m"sv  // Light blue
   };
 
   inline constexpr std::string_view ResetColor{"\033[0m"};
@@ -266,12 +267,12 @@ std::optional<Event> TerminalView::PollEvents()
 void TerminalView::Render(Model& model)
 {
     // TODO добавить updates
-    // impl_->ClearScreen();
+    impl_->ClearScreen();
 
-    if(impl_->is_init_drawing_) {
+    // if(impl_->is_init_drawing_) {
         impl_->DrawBackground(model.win_size_);
-        impl_->is_init_drawing_ = false;
-    }
+    //     impl_->is_init_drawing_ = false;
+    // }
 
     for(auto&& snake : model.snakes_)
         impl_->DrawSnake(snake);

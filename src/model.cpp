@@ -1,29 +1,35 @@
-#include "model.hpp"
+#include <functional>
+#include <utility>
+
 #include "coord.hpp"
+#include "model.hpp"
 
 namespace snake_game {
 
 Model::Model(Coord win_size,
+             int num_players,
              int num_bots,
-             int rabb_per_snake,
-             PlayersMode players_mode) :
+             int rabb_per_snake) :
     win_size_(win_size),
-    players_mode_(players_mode),
+    num_players_(num_players),
+    num_bots_(num_bots),
     rabb_per_snake_(rabb_per_snake)
 {
-    snakes_.emplace_back();
-    SpawnFirstPlayerSnake(snakes_.front());
-    hcontrol_.emplace_back(&snakes_.front());
+    if(!(num_players + num_bots))
+        throw std::runtime_error("Error: the total number of players and bots must be strictly greater than zero");
 
-    if(!IsSinglePlayer()) {
+    int counter = -1;
+    for(int i = 0; i < num_players; ++i) {
+        ++counter;
         snakes_.emplace_back();
-        SpawnSecondPlayerSnake(snakes_.back());
+        SpawnNewSnake(snakes_.back(), &counter);
         hcontrol_.emplace_back(&(snakes_.back()));
     }
 
     for(int i = 0; i < num_bots; ++i) {
+        ++counter;
         snakes_.emplace_back();
-        SpawnNewSnake(snakes_.back());
+        SpawnNewSnake(snakes_.back(), &counter);
     }
 
     FillSnakesColor();
@@ -31,100 +37,174 @@ Model::Model(Coord win_size,
 
 void Model::Update()
 {
+    MoveSnakes();
     SnakesUpdate();
-    for(auto&& snake : snakes_) snake.Move();
-    GenerateRabbits();
+    RemoveDeadSnakes();
+    if(!snakes_.empty()) GenerateRabbits();
+}
+
+void Model::MoveSnakes() { for(auto&& snake_it : snakes_) snake_it.Move(); }
+void Model::RemoveDeadSnakes()
+{
+    auto it = snakes_.cbegin(), end = snakes_.cend();
+    for( ; it != end; ) {
+        if(!it->is_live_) it = snakes_.erase(it);
+        else ++it;
+    }
+
+    if(snakes_.empty()) game_over_ = true;
 }
 
 void Model::GenerateRabbits()
 {
     if(rabbits_.size() < rabb_per_snake_ * snakes_.size()) {
-        Coord rabbit_coord = GetRandomCoord(win_size_);
-        if(!SnakesOverlapped(rabbit_coord)) {
+        std::pair<Coord, Coord> corners;
+        corners.first.x = 1;
+        corners.first.y = 1;
+
+        corners.second.x = win_size_.x - 2;
+        corners.second.y = win_size_.y - 2;
+        
+        Coord rabbit_coord = GetRandomCoord(corners.first, corners.second, gen_);
+        if(!SnakesOverlapped(rabbit_coord) && !RabbitsOverlapped(rabbit_coord)) {
             rabbits_.emplace_back(rabbit_coord);
         }
     }
 }
 
-bool Model::IsSinglePlayer() const noexcept
+void Model::SpawnNewSnake(Snake& snake, int* counter)
 {
-    if(players_mode_ == PlayersMode::SINGLE_PLAYER)
-        return true;
-    return false;
-}
+    auto corners_coord = GetSector(*counter);
 
-namespace {}
-
-void Model::SpawnFirstPlayerSnake(Snake& snake)
-{
-    snake.dir_ = Direction::RIGHT;
-
-    snake.body_.emplace_back(4,2);
-    snake.body_.emplace_back(3,2);
-    snake.body_.emplace_back(2,2);
-}
-
-void Model::SpawnSecondPlayerSnake(Snake& snake)
-{
-    snake.dir_ = Direction::LEFT;
-
-    snake.body_.emplace_back(win_size_.x - 5, win_size_.y - 3);
-    snake.body_.emplace_back(win_size_.x - 4, win_size_.y - 3);
-    snake.body_.emplace_back(win_size_.x - 3, win_size_.y - 3);
-}
-
-void Model::SpawnNewSnake(Snake& snake)
-{
-    Coord head = GetRandomCoord({win_size_.x - 2, win_size_.y - 2});
-    Direction dir = GetRandomDirection();
-    
-    // Проверяем в этом направлении есть ли змейки на линии 2-ух клеток
-    bool is_located = false;
-    for(int i = 0; i < 4; ++i) {
-        switch(dir) {
-            case Direction::UP:
-                InsertSnake(snake, is_located,
-                            {head.x, head.y - 1}, {head.x, head.y - 2});
-                break;
-            
-            case Direction::DOWN:
-                InsertSnake(snake, is_located,
-                            {head.x, head.y + 1}, {head.x, head.y + 2});
-                break;
-            
-            case Direction::RIGHT:
-                InsertSnake(snake, is_located,
-                            {head.x - 1, head.y}, {head.x - 2, head.y});
-                break;
-
-            case Direction::LEFT:
-                InsertSnake(snake, is_located,
-                            {head.x + 1, head.y}, {head.x + 2, head.y});
-                break;
-            
-            default: std::cerr << "Error: uknown directions" << std::endl;
-        }
-        if(is_located) break;
-        else dir = RotateDir(dir);
-    }
-    if(!is_located) // TODO добавить обработку ошибки
-        std::cerr << "Error: bot can't placement" << std::endl;
-
+    Coord head = GetRandomCoord(corners_coord.first, corners_coord.second, gen_);
+    Direction dir = GetRandomDirection(gen_);
     snake.dir_ = dir;
     
-    /* DEBUG */ std::cerr << "Im final Spawn function" << "\n" << std::flush;
+    switch(dir) {
+        case Direction::UP:
+            InsertSnake(snake,
+                        {head.x, head.y},
+                        {head.x, head.y + 1},
+                        {head.x, head.y + 2});
+            break;
+        
+        case Direction::DOWN:
+            InsertSnake(snake,
+                        {head.x, head.y},
+                        {head.x, head.y - 1},
+                        {head.x, head.y - 2});
+            break;
+        
+        case Direction::RIGHT:
+            InsertSnake(snake,
+                        {head.x,     head.y},
+                        {head.x - 1, head.y},
+                        {head.x - 2, head.y});
+            break;
 
+        case Direction::LEFT:
+            InsertSnake(snake,
+                        {head.x,     head.y},
+                        {head.x + 1, head.y},
+                        {head.x + 2, head.y});
+            break;
+        
+        default: std::cerr << "Error: uknown directions" << std::endl;
+    }
 }
 
-void Model::InsertSnake(Snake& snake, bool& is_located,
-                        Coord second_part, Coord third_part)
+// counter начинается от 0 (у первой змейки  counter = 0)
+std::pair<Coord, Coord> Model::GetSector(int counter)
 {
- if(!SnakesOverlapped(second_part) &&
-    !SnakesOverlapped(third_part)) {
-        snake.body_.emplace_back(second_part.x, second_part.y);
-        snake.body_.emplace_back(third_part.x,   third_part.y);
-        is_located = true;
-    }   
+    const int num_snakes = num_bots_ + num_players_;
+
+    if (counter < 0 || counter >= num_snakes)
+        throw std::runtime_error("Error: snake index is out of range");
+
+    const int inner_left   = 1;
+    const int inner_top    = 1;
+    const int inner_width  = win_size_.x - 2;
+    const int inner_height = win_size_.y - 2;
+    const int snake_margin = 2;
+
+    auto split_range = [](int begin, int length, int index, int parts) {
+        const int part_begin = begin + (length * index) / parts;
+        const int part_end   = begin + (length * (index + 1)) / parts - 1;
+        return std::pair<int, int>{part_begin, part_end};
+    };
+
+    int cols = 0;
+    int rows = 0;
+
+    if (num_snakes <= 3) {
+        cols = num_snakes;
+        rows = 1;
+    }
+    else if (num_snakes == 4) {
+        cols = 2;
+        rows = 2;
+    }
+    else if (num_snakes == 5 || num_snakes == 6) {
+        cols = 3;
+        rows = 2;
+    }
+    else { 
+        // TODO добавить вместо числа константную переменную
+        throw std::runtime_error("Error: total number of snakes "
+                                 "must be less than or equal to 6\n");
+    }
+
+    const int col = counter % cols;
+    const int row = counter / cols;
+
+    const auto [sector_left, sector_right] =
+        split_range(inner_left, inner_width, col, cols);
+
+    const auto [sector_top, sector_bottom] =
+        split_range(inner_top, inner_height, row, rows);
+
+    Coord left_top {
+        sector_left + snake_margin,
+        sector_top + snake_margin
+    };
+
+    Coord right_bottom {
+        sector_right - snake_margin,
+        sector_bottom - snake_margin
+    };
+
+    if (left_top.x > right_bottom.x || left_top.y > right_bottom.y)
+        throw std::runtime_error("Error: spawn sector is too small for a snake");
+
+    return {left_top, right_bottom};
+}
+
+void Model::InsertSnake(Snake& snake,
+                        Coord head, Coord second_part, Coord third_part)
+{
+    snake.body_.emplace_back(head.x,        head.y);
+    snake.body_.emplace_back(second_part.x, second_part.y);
+    snake.body_.emplace_back(third_part.x,  third_part.y);
+}
+
+bool Model::SnakesOverlapped(Coord coord,
+    std::list<Snake>::iterator& current_snake) const
+{
+    for(auto snake = snakes_.cbegin(), last_snake = snakes_.cend();
+        snake != last_snake; ++snake) { 
+
+        auto body_part = snake->body_.cbegin();
+        if(snake == current_snake)
+            body_part += 1;
+            
+        for(auto end_part = snake->body_.cend(); body_part !=  end_part; ++body_part) {
+            if(*body_part == coord)
+                return true;
+            
+            else continue;
+        }
+    }
+    return false;
 }
 
 bool Model::SnakesOverlapped(Coord coord) const
@@ -134,6 +214,7 @@ bool Model::SnakesOverlapped(Coord coord) const
             if(body_part == coord)
                 return true;
             else continue;
+        
     
     return false;
 }
@@ -150,16 +231,22 @@ bool Model::RabbitsOverlapped(Coord coord, std::vector<Rabbit>::const_iterator& 
     return false;
 }
 
-bool Model::Crashes(std::list<Snake>::iterator& it, Coord new_head_coord)
+bool Model::RabbitsOverlapped(Coord coord) const
 {
-    if(SnakesOverlapped(new_head_coord)) {
+    for(auto rabbit_iter = rabbits_.cbegin(), cend = rabbits_.cend(); rabbit_iter != cend; ++rabbit_iter)
+        if(rabbit_iter->body_ == coord)
+            return true;
+        else continue;
+
+    return false;
+}
+
+bool Model::Crashes(std::list<Snake>::iterator& it, Coord head_coord)
+{
+    if(SnakesOverlapped(head_coord, it)) {
         // TODO добавить какую-нибудь надпись по типу: "О нет, змейка №X умерла!"
         ZeroizeHContrSnake(it);
-        it = snakes_.erase(it);
-
-        /* DEBUG */  std::cerr << "Snake is erase \n" << std::flush;
-        /* DEBUG */  std::cout << "\033[" << win_size_.y + 2 << ";" << 2 << "H" << "Змейки столкнулись" << std::flush;
-
+        it->is_live_ = false;
         return true;
     }
     return false;
@@ -170,40 +257,41 @@ void Model::BoundariesTeleportation(Snake& snake, Coord coord)
     // Top border
     if(coord.y == 0) {
         snake.body_.pop_front();
-        snake.body_.emplace_front(coord.x, win_size_.y - 1);
+        snake.body_.emplace_front(coord.x, win_size_.y - 2);
     }
 
     // Bottom border
     if(coord.y == win_size_.y - 1) {
         snake.body_.pop_front();
-        snake.body_.emplace_front(coord.x, 0);
+        snake.body_.emplace_front(coord.x, 1);
     }
 
     // Left border
     if(coord.x == 0) {
         snake.body_.pop_front();
-        snake.body_.emplace_front(win_size_.x - 1, coord.y);
+        snake.body_.emplace_front(win_size_.x - 2, coord.y);
     }
 
     // Rignt border
     if(coord.x == win_size_.x - 1) {
         snake.body_.pop_front();
-        snake.body_.emplace_front(0, coord.y);
+        snake.body_.emplace_front(1, coord.y);
     }
 }
 
 void Model::SnakesUpdate()
 {
-    for(auto snake_it = snakes_.begin(), end = snakes_.end(); snake_it != end;) {
+    for(auto snake_it = snakes_.begin(), end = snakes_.end(); snake_it != end;
+        ++snake_it) {
         // Direction dir = snake_it->move_algorythm_();
-        // snake_it->ChangeDir(dir);
+        // snake_it->ChangeDir(dir); // TODO добавить алгоритмы
+        BoundariesTeleportation(*snake_it, snake_it->body_.front());
+        Coord head_coord = snake_it->body_.front();
 
-        Coord new_head_coord = snake_it->body_.front() + snake_it->dir_;
-
-        EatingRabbits(*snake_it, new_head_coord);
-        BoundariesTeleportation(*snake_it, new_head_coord);
-        
-        if(!Crashes(snake_it, new_head_coord)) ++snake_it;
+        Crashes(snake_it, head_coord);
+        if(snake_it->is_live_) {
+            EatingRabbits(*snake_it, head_coord);
+        }
     }
 }
 
@@ -215,7 +303,8 @@ void Model::EatingRabbits(Snake& snake, Coord new_head_coord)
         rabbits_.erase(iter);
     
         // добавляем элемент в конец змейки, т.к. она съела кролика
-        snake.body_.emplace_back();
+        Coord old_tail = snake.body_.back() - snake.dir_;
+        snake.body_.emplace_back(old_tail);
     }
 }
 
@@ -247,5 +336,7 @@ void Model::FillSnakesColor()
         ++i;
     }
 }
+
+bool Model::IsGameOver() { return game_over_; }
 
 } // namespace snake_game
