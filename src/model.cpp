@@ -2,6 +2,7 @@
 #include <utility>
 
 #include "coord.hpp"
+#include "decor.hpp"
 #include "model.hpp"
 
 namespace snake_game {
@@ -37,18 +38,37 @@ Model::Model(Coord win_size,
 
 void Model::Update()
 {
+    ClearOldUpdates();
     MoveSnakes();
     SnakesUpdate();
     RemoveDeadSnakes();
     if(!snakes_.empty()) GenerateRabbits();
 }
 
-void Model::MoveSnakes() { for(auto&& snake_it : snakes_) snake_it.Move(); }
+void Model::ClearOldUpdates() { updates_.clear(); }
+void Model::MoveSnakes()
+{
+    for(auto&& snake_it : snakes_) {
+        const Coord old_head = snake_it.body_.front();
+        snake_it.prev_tail_ = snake_it.body_.back();
+        snake_it.Move();
+
+        updates_.push_back({old_head, snake_it.color_,
+                            UpdKind::SNAKE_BODY, Direction::UNKNOWN});
+        updates_.push_back({snake_it.prev_tail_, ObjColor::WITHOUT_COLOR,
+                            UpdKind::EMPTY, Direction::UNKNOWN});
+    }
+}
 void Model::RemoveDeadSnakes()
 {
     auto it = snakes_.cbegin(), end = snakes_.cend();
     for( ; it != end; ) {
-        if(!it->is_live_) it = snakes_.erase(it);
+        if(!it->is_live_) {
+            for(auto&& body_part : it->body_)
+                updates_.push_back({body_part, ObjColor::WITHOUT_COLOR,
+                                    UpdKind::EMPTY, Direction::UNKNOWN});
+            it = snakes_.erase(it);
+        }
         else ++it;
     }
 
@@ -68,6 +88,8 @@ void Model::GenerateRabbits()
         Coord rabbit_coord = GetRandomCoord(corners.first, corners.second, gen_);
         if(!SnakesOverlapped(rabbit_coord) && !RabbitsOverlapped(rabbit_coord)) {
             rabbits_.emplace_back(rabbit_coord);
+            updates_.push_back({rabbit_coord, ObjColor::WITHOUT_COLOR,
+                                UpdKind::RABBIT, Direction::UNKNOWN});
         }
     }
 }
@@ -75,7 +97,6 @@ void Model::GenerateRabbits()
 void Model::SpawnNewSnake(Snake& snake, int* counter)
 {
     auto corners_coord = GetSector(*counter);
-
     Coord head = GetRandomCoord(corners_coord.first, corners_coord.second, gen_);
     Direction dir = GetRandomDirection(gen_);
     snake.dir_ = dir;
@@ -215,7 +236,6 @@ bool Model::SnakesOverlapped(Coord coord) const
                 return true;
             else continue;
         
-    
     return false;
 }
 
@@ -288,6 +308,9 @@ void Model::SnakesUpdate()
         BoundariesTeleportation(*snake_it, snake_it->body_.front());
         Coord head_coord = snake_it->body_.front();
 
+        updates_.push_back({head_coord, snake_it->color_,
+                            UpdKind::SNAKE_HEAD, snake_it->dir_});
+
         Crashes(snake_it, head_coord);
         if(snake_it->is_live_) {
             EatingRabbits(*snake_it, head_coord);
@@ -302,9 +325,10 @@ void Model::EatingRabbits(Snake& snake, Coord new_head_coord)
 
         rabbits_.erase(iter);
     
-        // добавляем элемент в конец змейки, т.к. она съела кролика
-        Coord old_tail = snake.body_.back() - snake.dir_;
-        snake.body_.emplace_back(old_tail);
+        // возвращаем клетку хвоста, которую убрали на ходе выше
+        snake.body_.emplace_back(snake.prev_tail_);
+        updates_.push_back({snake.prev_tail_, snake.color_,
+                            UpdKind::SNAKE_BODY, Direction::UNKNOWN});
     }
 }
 
@@ -332,7 +356,7 @@ void Model::FillSnakesColor()
 {
     std::uint8_t i = 0;
     for(auto&& snake : snakes_) {
-        snake.color_ = static_cast<ObjColor>(i % static_cast<uint8_t>(ObjColor::COUNT));
+        snake.color_ = static_cast<ObjColor>(i % static_cast<uint8_t>(ObjColor::WITHOUT_COLOR));
         ++i;
     }
 }

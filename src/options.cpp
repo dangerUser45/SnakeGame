@@ -5,6 +5,19 @@ namespace snake_game {
 
 namespace {
     enum OptionCode { NUM_PLAYERS, NUM_BOTS, RABB_PER_SNAKE, WIN_SIZE };
+
+    bool IsLongOption(std::string_view arg, std::string_view name)
+    {
+        if(!arg.starts_with("--"))
+            return false;
+
+        arg.remove_prefix(2);
+        const std::size_t eq_pos = arg.find('=');
+        if(eq_pos != std::string_view::npos)
+            arg = arg.substr(0, eq_pos);
+
+        return arg == name;
+    }
 }
 
 void GetOptions(int argc, char **argv, Options& options)
@@ -25,6 +38,14 @@ void GetOptions(int argc, char **argv, Options& options)
     while ((opt = getopt_long(argc, argv, "", long_options, NULL)) != -1) {
         switch (opt) {
             case NUM_PLAYERS: {
+                std::string_view value = (optarg != nullptr) ? std::string_view(optarg)
+                                                             : std::string_view{};
+                if(value.starts_with("--")) {
+                    --optind;
+                    err_message += "Error: missing required argument for '--num_players'\n";
+                    break;
+                }
+
                 char* endptr = NULL;
 
                 long int num_players = std::strtol(optarg, &endptr, 10);
@@ -40,6 +61,14 @@ void GetOptions(int argc, char **argv, Options& options)
             }
         
             case NUM_BOTS: {
+                std::string_view value = (optarg != nullptr) ? std::string_view(optarg)
+                                                             : std::string_view{};
+                if(value.starts_with("--")) {
+                    --optind;
+                    err_message += "Error: missing required argument for '--num_bots'\n";
+                    break;
+                }
+
                 char* endptr = NULL;
 
                 long int num_bots = std::strtol(optarg, &endptr, 10);
@@ -55,6 +84,14 @@ void GetOptions(int argc, char **argv, Options& options)
             }
 
             case RABB_PER_SNAKE: {
+                std::string_view value = (optarg != nullptr) ? std::string_view(optarg)
+                                                             : std::string_view{};
+                if(value.starts_with("--")) {
+                    --optind;
+                    err_message += "Error: missing required argument for '--rabb_per_snake'\n";
+                    break;
+                }
+
                 char* endptr = NULL;
 
                 long int rabb_per_snake = std::strtol(optarg, &endptr, 10); 
@@ -71,7 +108,13 @@ void GetOptions(int argc, char **argv, Options& options)
             }
 
             case WIN_SIZE: {
-                std::string_view value = optarg;
+                std::string_view value = (optarg != nullptr) ? std::string_view(optarg)
+                                                             : std::string_view{};
+                if(value.starts_with("--")) {
+                    --optind;
+                    err_message += "Error: missing required argument for '--win_size'\n";
+                    break;
+                }
 
                 const std::size_t sep = value.find('x');
                 if (sep == std::string_view::npos || sep == 0 || sep == value.size() - 1) {
@@ -84,30 +127,47 @@ void GetOptions(int argc, char **argv, Options& options)
                     break;
                 }
 
-                auto parse_num = [](std::string_view part, const char* what) -> int {
+                int width = 0;
+                int height = 0;
+                auto parse_num = [&](std::string_view part, const char* what, int& out) {
                     std::string temp(part);
                     char* endptr = nullptr;
                     long result = std::strtol(temp.c_str(), &endptr, 10);
 
-                    if (*endptr != '\0')
-                        throw std::runtime_error(std::string("Error: ") + what + " must contain only digits\n");
+                    if (*endptr != '\0') {
+                        err_message += std::string("Error: ") + what + " must contain only digits\n";
+                        return false;
+                    }
 
-                    if (result <= 0)
-                        throw std::runtime_error(std::string("Error: ") + what + " must be > 0\n");
+                    if (result <= 0) {
+                        err_message += std::string("Error: ") + what + " must be > 0\n";
+                        return false;
+                    }
 
-                    return static_cast<int>(result);
+                    out = static_cast<int>(result);
+                    return true;
                 };
 
-                options.win_size = {
-                    parse_num(value.substr(0, sep), "width"),
-                    parse_num(value.substr(sep + 1), "height")
-                };
+                if(parse_num(value.substr(0, sep), "width", width)
+                && parse_num(value.substr(sep + 1), "height", height))
+                    options.win_size = {width, height};
 
                 break;
             }
 
-            case '?': err_message += "Error: missing required argument\n";
+            case '?': {
+                const std::string_view arg =
+                    (optind > 0) ? std::string_view(argv[optind - 1]) : std::string_view{};
+
+                if(IsLongOption(arg, "num_players")
+                || IsLongOption(arg, "num_bots")
+                || IsLongOption(arg, "rabb_per_snake")
+                || IsLongOption(arg, "win_size"))
+                    err_message += "Error: missing required argument for '" + std::string(arg) + "'\n";
+                else
+                    err_message += "Error: unrecognized option '" + std::string(arg) + "'\n";
                 break;
+            }
 
             default: err_message += "Error: unrecognized option '"
                                  + static_cast<std::string>(argv[optind - 1]) + "'\n";

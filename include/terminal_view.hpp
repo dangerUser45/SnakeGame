@@ -32,7 +32,7 @@ private:
     std::queue<Event> events_{};
     
 public:
-    bool is_init_drawing_ = true;
+    bool is_init_rendering_ = true;
 
     void GotoXY(Coord coord) const;
     void GotoXY(int x, int y) const;
@@ -46,6 +46,10 @@ public:
     void HideCursor() const;
     void ShowCursor() const;
     void UpdateEventsBuffer();
+    void FullRender(Model& model);
+    void UpdatesRender(Model&  model);
+    const std::string_view DrawUpdate(Model::Updates& update);
+
     std::string_view GetTerminalColor(ObjColor color) const;
     std::optional<Event> PopNextEvent();
 };

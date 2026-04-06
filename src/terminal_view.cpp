@@ -1,11 +1,13 @@
 #include <optional>
 #include <iostream>
+#include <stdexcept>
 #include <stdlib.h>
 #include <termios.h>
 #include <fcntl.h>
 
 #include "terminal_view.hpp"
 #include "decor.hpp"
+#include "model.hpp"
 
 namespace snake_game {
 
@@ -39,14 +41,15 @@ void TerminalView::Impl::ClearScreen()
 }
 
 namespace {
-    using namespace std::literals;
+    using namespace std::string_view_literals;
     inline constexpr std::array color_array {
         "\033[91m"sv, // Red
         "\033[92m"sv, // Green
         "\033[93m"sv, // Orange
         "\033[94m"sv, // Blue
         "\033[95m"sv, // Purple
-        "\033[96m"sv  // Light blue
+        "\033[96m"sv, // Light blue
+        ""sv,         // Without color
   };
 
   inline constexpr std::string_view ResetColor{"\033[0m"};
@@ -264,21 +267,47 @@ std::optional<Event> TerminalView::PollEvents()
     return impl_->PopNextEvent();
 }
 
-void TerminalView::Render(Model& model)
+void TerminalView::Impl::FullRender(Model& model)
 {
-    // TODO добавить updates
-    impl_->ClearScreen();
-
-    // if(impl_->is_init_drawing_) {
-        impl_->DrawBackground(model.win_size_);
-    //     impl_->is_init_drawing_ = false;
-    // }
+    ClearScreen();
+    DrawBackground(model.win_size_);
 
     for(auto&& snake : model.snakes_)
-        impl_->DrawSnake(snake);
+        DrawSnake(snake);
 
     for(auto&& rabbit : model.rabbits_)
-        impl_->DrawRabbit(rabbit);
+        DrawRabbit(rabbit);
+}
+
+const std::string_view TerminalView::Impl::DrawUpdate(Model::Updates& update)
+{
+    switch(update.upd_kind_) {
+        case Model::UpdKind::EMPTY:      return " ";
+        case Model::UpdKind::SNAKE_BODY: return glyphs::SNAKE_BODY;
+        case Model::UpdKind::SNAKE_HEAD: return DrawSnakeHead(update.dir_);
+        case Model::UpdKind::RABBIT:     return glyphs::RABBIT_BODY;
+
+        default: throw std::runtime_error("Error: uknwon kind of updates\n");
+    }
+}
+
+void TerminalView::Impl::UpdatesRender(Model&  model)
+{
+    for(auto&& update : model.updates_) {
+        GotoXY(update.coord_);
+        std::cout << GetTerminalColor(update.color_)
+                  << DrawUpdate(update) << ResetColor;
+    }
+}
+
+void TerminalView::Render(Model& model)
+{
+    if(impl_->is_init_rendering_) {
+        impl_->FullRender(model);
+        impl_->is_init_rendering_ = false;
+    }
+    else
+        impl_->UpdatesRender(model);
 
     std::cout << std::flush;
 }

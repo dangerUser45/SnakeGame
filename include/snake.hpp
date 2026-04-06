@@ -13,6 +13,7 @@ public:
     std::deque<Coord> body_{};
     std::function<Direction()> move_algorythm_{};
     ObjColor color_{};
+    Coord prev_tail_{};
     bool is_live_ = true;
 
     Snake(Direction dir = Direction::UP);

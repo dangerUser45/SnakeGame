@@ -7,6 +7,7 @@
 #include <vector>
 #include <list>
 
+#include "decor.hpp"
 #include "rabbit.hpp"
 #include "snake.hpp"
 #include "coord.hpp"
@@ -28,9 +29,12 @@ public:
     void Update();
     bool IsGameOver();
 
-    struct Updates
-    {
-        // color, position
+    enum class UpdKind { EMPTY, SNAKE_BODY, SNAKE_HEAD, RABBIT };
+    struct Updates {
+        Coord coord_;
+        ObjColor color_;
+        UpdKind upd_kind_;
+        Direction dir_;
     };
 
     Coord win_size_;
@@ -40,6 +44,7 @@ public:
     std::list<Snake> snakes_{};
     std::vector<Rabbit> rabbits_{};
     std::vector<Snake*> hcontrol_{};
+    std::vector<Updates> updates_{};
     std::chrono::milliseconds tic_time_{50};
     int num_players_;
     int num_bots_;
@@ -70,6 +75,7 @@ private:
     void EatingRabbits(Snake& snake, Coord coord);
     void BoundariesTeleportation(Snake& snake, Coord coord);
     void FillSnakesColor();
+    void ClearOldUpdates();
 
     bool game_over_ = false;
 
