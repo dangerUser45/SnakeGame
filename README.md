@@ -1,1 +1,1 @@
-# *Snake Game*
+![preview](readme_assets/preview.png)

@@ -27,12 +27,17 @@ TerminalView::~TerminalView()
 
 void TerminalView::Impl::GotoXY(Coord coord) const
 {
-    std::cout << "\033[" << coord.y + 1 << ";" << coord.x + 1 << "H";
+    std::cout << "\033[" << coord.y + 7 << ";" << coord.x + 15  << "H";
 }
 
 void TerminalView::Impl::GotoXY(int x, int y) const
 {
-    std::cout << "\033[" << y + 1 << ";" << x + 1 << "H";
+    std::cout << "\033[" << y + 7 << ";" << x + 15 << "H";
+}
+
+void TerminalView::Impl::GotoXYInit(int x, int y) const
+{
+    std::cout << "\033[" << y << ";" << x << "H";    
 }
 
 void TerminalView::Impl::ClearScreen()
@@ -270,6 +275,7 @@ std::optional<Event> TerminalView::PollEvents()
 void TerminalView::Impl::FullRender(Model& model)
 {
     ClearScreen();
+    DrawBanner();
     DrawBackground(model.win_size_);
 
     for(auto&& snake : model.snakes_)
@@ -277,6 +283,21 @@ void TerminalView::Impl::FullRender(Model& model)
 
     for(auto&& rabbit : model.rabbits_)
         DrawRabbit(rabbit);
+}
+
+void TerminalView::Impl::DrawBanner() const
+{
+
+    Coord init{45, 2};
+
+    GotoXYInit(init.x, init.y);
+    std::cout << "▄█████ ▄▄  ▄▄  ▄▄▄  ▄▄ ▄▄ ▄▄▄▄▄  ▄████   ▄▄▄  ▄▄   ▄▄ ▄▄▄▄▄\n";
+    
+    GotoXYInit(init.x, init.y + 1);
+    std::cout << "▀▀▀▄▄▄ ███▄██ ██▀██ ██▄█▀ ██▄▄  ██  ▄▄▄ ██▀██ ██▀▄▀██ ██▄▄ \n";
+    
+    GotoXYInit(init.x, init.y + 2);
+    std::cout << "█████▀ ██ ▀██ ██▀██ ██ ██ ██▄▄▄  ▀███▀  ██▀██ ██   ██ ██▄▄▄\n";
 }
 
 const std::string_view TerminalView::Impl::DrawUpdate(Model::Updates& update)

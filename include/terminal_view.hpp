@@ -36,6 +36,7 @@ public:
 
     void GotoXY(Coord coord) const;
     void GotoXY(int x, int y) const;
+    void GotoXYInit(int x, int y) const;
     void ClearScreen();
     void DrawSnake(const Snake& snake) const;
     const std::string_view DrawSnakeHead(Direction dir) const;
@@ -49,6 +50,8 @@ public:
     void FullRender(Model& model);
     void UpdatesRender(Model&  model);
     const std::string_view DrawUpdate(Model::Updates& update);
+    void DrawBanner() const;
+
 
     std::string_view GetTerminalColor(ObjColor color) const;
     std::optional<Event> PopNextEvent();
