@@ -10,8 +10,10 @@ namespace snake_game {
 Model::Model(Coord win_size,
              int num_players,
              int num_bots,
+             int tic_time,
              int rabb_per_snake) :
     win_size_(win_size),
+    tic_time_(tic_time),
     num_players_(num_players),
     num_bots_(num_bots),
     rabb_per_snake_(rabb_per_snake)
@@ -59,14 +61,22 @@ void Model::MoveSnakes()
                             UpdKind::EMPTY, Direction::UNKNOWN});
     }
 }
+
 void Model::RemoveDeadSnakes()
 {
     auto it = snakes_.cbegin(), end = snakes_.cend();
     for( ; it != end; ) {
         if(!it->is_live_) {
-            for(auto&& body_part : it->body_)
-                updates_.push_back({body_part, ObjColor::WITHOUT_COLOR,
-                                    UpdKind::EMPTY, Direction::UNKNOWN});
+            auto body = it->body_.cbegin(), tail = it->body_.cend();
+            Updates updates{};
+            if(SnakesOverlapped(*body, updates)) {
+                updates_.push_back(updates);
+                ++body;
+            }
+            for(; body != tail; ++body) {
+                    updates_.push_back({*body, ObjColor::WITHOUT_COLOR,
+                                        UpdKind::EMPTY, Direction::UNKNOWN});
+            }
             it = snakes_.erase(it);
         }
         else ++it;
@@ -228,6 +238,21 @@ bool Model::SnakesOverlapped(Coord coord,
     return false;
 }
 
+bool Model::SnakesOverlapped(Coord coord, Updates& updates) const
+{
+    for(auto&& snake : snakes_) {
+        if(!snake.is_live_) continue;
+        for(auto&& body_part : snake.body_)
+            if(body_part == coord) {
+                updates = {body_part, snake.color_, UpdKind::SNAKE_BODY, Direction::UNKNOWN};
+                return true;
+            }
+            else continue;
+    }
+        
+    return false;
+}
+
 bool Model::SnakesOverlapped(Coord coord) const
 {
     for(auto&& snake : snakes_)
@@ -261,15 +286,13 @@ bool Model::RabbitsOverlapped(Coord coord) const
     return false;
 }
 
-bool Model::Crashes(std::list<Snake>::iterator& it, Coord head_coord)
+void Model::Crashes(std::list<Snake>::iterator& it, Coord head_coord)
 {
     if(SnakesOverlapped(head_coord, it)) {
-        // TODO добавить какую-нибудь надпись по типу: "О нет, змейка №X умерла!"
         ZeroizeHContrSnake(it);
         it->is_live_ = false;
-        return true;
     }
-    return false;
+    return;
 }
 
 void Model::BoundariesTeleportation(Snake& snake, Coord coord)
@@ -337,19 +360,6 @@ void Model::ZeroizeHContrSnake(std::list<Snake>::iterator it)
     for(auto&& elem : hcontrol_)
         if(elem == &(*it))
             elem = nullptr;
-}
-
-Direction RotateDir(Direction dir)
-{
-    switch(dir) {
-        case Direction::UP:    return Direction::RIGHT;
-        case Direction::RIGHT: return Direction::DOWN;
-        case Direction::DOWN:  return Direction::LEFT;
-        case Direction::LEFT:  return Direction::UP;
-
-        default: std::cerr << "Error: uknown direction" << std::endl;
-            return Direction::UNKNOWN;
-    }
 }
 
 void Model::FillSnakesColor()

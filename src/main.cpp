@@ -12,13 +12,14 @@ int main(int argc, char** argv)
     
     try {
         Options opt{};
-        GetOptions(argc, argv, opt);
+        opt.GetOptions(argc, argv);
 
         Model model = Model::Builder()
-        .SetWinSize(opt.win_size)
-        .SetNumPlayers(opt.num_players)
-        .SetNumBots(opt.num_bots)
-        .SetRabbPerSnake(opt.rabb_per_snake)
+        .SetWinSize(opt.win_size())
+        .SetNumPlayers(opt.num_players())
+        .SetNumBots(opt.num_bots())
+        .SetRabbPerSnake(opt.rabb_per_snake())
+        .SetTicTime(opt.tic_time())
         .Build();
 
         TerminalView terminal_view{};

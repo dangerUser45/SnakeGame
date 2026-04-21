@@ -222,7 +222,6 @@ sizeof(buffer));
             break;
 
         case 'q':
-        case 'Q':
             events_.push(Event::KEY_PRESSED_EXIT);
             ++i;
             break;

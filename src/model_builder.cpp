@@ -17,6 +17,13 @@ Model::Builder& Model::Builder::SetNumBots(int num_bots)
     return *this;
 }
 
+Model::Builder& Model::Builder::SetTicTime(int tic_time)
+{
+    if(tic_time != UNDEFINED_NUM)
+        tic_time_ = tic_time; 
+    return *this;
+}
+
 Model::Builder& Model::Builder::SetRabbPerSnake(int rabb_per_snake)
 {
     if(rabb_per_snake != UNDEFINED_NUM)
@@ -33,7 +40,7 @@ Model::Builder& Model::Builder::SetNumPlayers(int num_players)
 
 Model Model::Builder::Build() const
 {
-    return Model(win_size_, num_players_, num_bots_, rabb_per_snake_);
+    return Model(win_size_, num_players_, num_bots_, tic_time_, rabb_per_snake_);
 }
 
 } // namespace snake_game

@@ -18,7 +18,6 @@ public:
 
     Snake(Direction dir = Direction::UP);
     
-    Direction GetRandomDirection();
     void ChangeDir(Direction dir);
     void Move();
 };

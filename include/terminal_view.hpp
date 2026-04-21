@@ -1,7 +1,7 @@
 #pragma once
 
-#include <termios.h>
 #include <queue>
+#include <termios.h>
 
 #include "coord.hpp"
 #include "model.hpp"
@@ -16,7 +16,7 @@ private:
     std::unique_ptr<Impl> impl_;
 
 public:
-    std::optional<Event> PollEvents() override;
+    [[nodiscard]] std::optional<Event> PollEvents() override;
     void Render(Model& model) override;
 
     TerminalView();
@@ -39,7 +39,7 @@ public:
     void GotoXYInit(int x, int y) const;
     void ClearScreen();
     void DrawSnake(const Snake& snake) const;
-    const std::string_view DrawSnakeHead(Direction dir) const;
+    [[nodiscard]] const std::string_view DrawSnakeHead(Direction dir) const;
     void DrawRabbit(const Rabbit& rabbit) const;
     void DrawBackground(const Coord win_size) const;
     void SetupTerminal();
@@ -49,7 +49,7 @@ public:
     void UpdateEventsBuffer();
     void FullRender(Model& model);
     void UpdatesRender(Model&  model);
-    const std::string_view DrawUpdate(Model::Updates& update);
+    [[nodiscard]] const std::string_view DrawUpdate(Model::Updates& update);
     void DrawBanner() const;
 
 
