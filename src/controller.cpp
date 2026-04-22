@@ -1,19 +1,55 @@
+#include <memory>
 #include <thread>
 
 #include "controller.hpp"
+#include "model.hpp"
+#include "options.hpp"
 #include "view.hpp"
+#include "terminal_view.hpp"
+#include "graphical_view.hpp"
 
 namespace snake_game {
 
-Controller::Controller(Model& model, View& view)
-  : model_(model)
-  , view_(view)
-  {}
+namespace {
+Model MakeModel(Options& opt)
+{
+    return Model::Builder()
+    .SetWinSize(opt.win_size())
+    .SetViewMode(opt.view_mode())
+    .SetNumPlayers(opt.num_players())
+    .SetNumBots(opt.num_bots())
+    .SetRabbPerSnake(opt.rabb_per_snake())
+    .SetTicTime(opt.tic_time())
+    .Build();
+}
+
+std::unique_ptr<View> MakeView(ViewMode view_mode)
+{
+    if(view_mode == ViewMode::GRAPHICAL_VIEW)
+        return std::make_unique<GraphicalView>();
+
+    else if (view_mode == ViewMode::TERMINAL_VIEW)
+        return std::make_unique<TerminalView>();
+
+    else return nullptr;
+}
+
+}
+
+Controller::Controller(Options& opt)
+try : model_(MakeModel(opt)),
+      view_(MakeView(model_.view_mode_))
+{}
+
+catch(const std::exception& e) {
+        std::cerr << e.what() << std::endl;
+        throw;
+}
 
 void Controller::Run()
 {
     while (!should_exit_) {
-        while (std::optional<Event> event = view_.PollEvents())
+        while (std::optional<Event> event = view_->PollEvents())
             ProcessEvents(*event);
         
         if(!is_game_paused_) {
@@ -22,7 +58,7 @@ void Controller::Run()
                 should_exit_ = true;
         }
         
-        view_.Render(model_);
+        view_->Render(model_);
         std::this_thread::sleep_for(model_.tic_time_);
     }
 }

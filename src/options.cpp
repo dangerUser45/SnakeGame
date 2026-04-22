@@ -1,4 +1,5 @@
 #include "options.hpp"
+#include "model.hpp"
 #include <stdexcept>
 
 namespace snake_game {
@@ -69,9 +70,25 @@ void Options::GetOptions(int argc, char **argv)
                     limits::MAX_TIC_TIME, std::string("milliseconds per frame"));
                 break;
 
-            case VIEW:
-                
-                break;
+            case VIEW_MODE: {
+                    std::string_view value = (optarg != nullptr) ? std::string_view(optarg)
+                                                                 : std::string_view{};
+                    if(value.starts_with("--")) {
+                        --optind;
+                        err_message_ += static_cast<std::string>("Error: missing required argument for '--")
+                            + static_cast<std::string>(long_options[0].name) + "'\n";
+                        // break;
+                    }
+
+                    if(value == "graphical")
+                        view_mode_ = ViewMode::GRAPHICAL_VIEW;
+                    else if(value == "terminal")
+                        view_mode_ = ViewMode::TERMINAL_VIEW;
+                    else
+                        err_message_ += "Error: Incorrect option. Please, try 'graphical or 'terminal'\n";
+                    
+                    break;
+            }
 
             case WIN_SIZE: {
                 std::string_view value = (optarg != nullptr) ? std::string_view(optarg)
@@ -126,6 +143,8 @@ void Options::GetOptions(int argc, char **argv)
 
                 if(IsLongOption(arg, "num_players")
                 || IsLongOption(arg, "num_bots")
+                || IsLongOption(arg, "tic_time")
+                || IsLongOption(arg, "view")
                 || IsLongOption(arg, "rabb_per_snake")
                 || IsLongOption(arg, "win_size"))
                     err_message_ += "Error: missing required argument for '" + std::string(arg) + "'\n";

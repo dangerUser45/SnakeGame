@@ -8,6 +8,7 @@
 namespace snake_game {
 
 Model::Model(Coord win_size,
+             ViewMode view_mode,
              int num_players,
              int num_bots,
              int tic_time,
@@ -16,7 +17,8 @@ Model::Model(Coord win_size,
     tic_time_(tic_time),
     num_players_(num_players),
     num_bots_(num_bots),
-    rabb_per_snake_(rabb_per_snake)
+    rabb_per_snake_(rabb_per_snake),
+    view_mode_(view_mode)
 {
     if(!(num_players + num_bots))
         throw std::runtime_error("Error: the total number of players and bots must be strictly greater than zero");

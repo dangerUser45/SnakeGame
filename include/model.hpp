@@ -14,14 +14,15 @@
 
 namespace snake_game {
 
-Direction RotateDir(Direction dir);
+enum class ViewMode {TERMINAL_VIEW, GRAPHICAL_VIEW, UNDEFINED_VIEW};
 
 class Model
 {
 public:
-    static constexpr const int   UNDEFINED_NUM   = -1;
+    static constexpr const int UNDEFINED_NUM   = -1;
 
     Model(Coord win_size,
+          ViewMode view_mode,
           int num_players,
           int num_bots,
           int tic_time,
@@ -50,6 +51,7 @@ public:
     int num_players_;
     int num_bots_;
     int rabb_per_snake_;
+    ViewMode view_mode_;
 
     std::mt19937 gen_{std::random_device{}()};
 
@@ -81,17 +83,20 @@ private:
 
     bool game_over_ = false;
 
-    static constexpr const int DEFAULT_WIDTH           = 145;
-    static constexpr const int DEFAULT_HEIGTH          = 34;
-    static constexpr const int DEFAULT_NUM_BOTS        = 2;
-    static constexpr const int DEFAULT_RABB_PER_SNAKES = 5;
-    static constexpr const int DEFAULT_NUM_PLAYERS     = 1;
-    static constexpr const int DEFAULT_TIC_TIME        = 100; // milliseconds
+    static constexpr int DEFAULT_WIDTH           = 145;
+    static constexpr int DEFAULT_HEIGTH          = 34;
+    static constexpr ViewMode DEFAULT_VIEW_MODE  = ViewMode::TERMINAL_VIEW; 
+    static constexpr int DEFAULT_NUM_BOTS        = 2;
+    static constexpr int DEFAULT_RABB_PER_SNAKES = 5;
+    static constexpr int DEFAULT_NUM_PLAYERS     = 1;
+    static constexpr int DEFAULT_TIC_TIME        = 100; // milliseconds
+
 };
 
 struct Model::Builder {
 
     Coord win_size_           = { DEFAULT_WIDTH, DEFAULT_HEIGTH };
+    ViewMode view_mode_       =   DEFAULT_VIEW_MODE;
     int num_bots_             =   DEFAULT_NUM_BOTS;
     int rabb_per_snake_       =   DEFAULT_RABB_PER_SNAKES;
     int num_players_          =   DEFAULT_NUM_PLAYERS;
@@ -100,11 +105,13 @@ struct Model::Builder {
     Builder() = default;
 
     [[nodiscard]] Builder& SetWinSize(Coord win_size);
+    [[nodiscard]] Builder& SetViewMode(ViewMode view_mode);
     [[nodiscard]] Builder& SetNumBots(int num_bots);
     [[nodiscard]] Builder& SetTicTime(int tic_time);
     [[nodiscard]] Builder& SetRabbPerSnake(int rabb_per_snake);
     [[nodiscard]] Builder& SetNumPlayers(int num_players);
     [[nodiscard]] Model Build() const;
+
 };
 
 } // namespace snake_game
