@@ -522,7 +522,7 @@ sizeof(buffer));
             ++i;
             break;
 
-        case '\x1b':
+        case '\033':
             if (i + 2 < nread && buffer[i + 1] == '[') {
                 switch (buffer[i + 2]) {
                 case 'A':

@@ -560,11 +560,19 @@ Direction Model::MediumBot(Snake& snake) const
     return dir;
 }
 
+struct AstarPath {
+    std::vector<Coord> path;
+    bool is_blocked;
+    
+};
+
 Direction Model::SmartyBot(Snake& snake) const
 {
     auto rabbit_cand = GetRabbitCandidates(snake.body_[0], 10);
 
-    
+    for(auto&& rabbit : *rabbit_cand) {
+        
+    }
 
     auto block_map  = BuildBlockMap();
     auto danger_map = BuildDangerMap();

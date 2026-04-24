@@ -16,6 +16,7 @@ add_executable(snake
     src/controller.cpp
     src/coord.cpp
     src/event.cpp
+    src/graphical_view.cpp
     src/main.cpp
     src/model.cpp
     src/model_builder.cpp

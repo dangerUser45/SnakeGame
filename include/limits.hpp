@@ -9,7 +9,7 @@ inline constexpr long int MAX_NUM_BOTS = 4;
 inline constexpr long int MIN_NUM_RABB_PER_SNAKE = 0;
 inline constexpr long int MAX_NUM_RABB_PER_SNAKE = 100;
 
-inline constexpr long int MIN_TIC_TIME = 10;
+inline constexpr long int MIN_TIC_TIME = 1;
 inline constexpr long int MAX_TIC_TIME = 10'000;
 
 inline constexpr long int MIN_WIN_WIDTH  = 40;

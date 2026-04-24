@@ -1,4 +1,3 @@
-#include <memory>
 #include <thread>
 
 #include "controller.hpp"
