@@ -1,4 +1,8 @@
+#include <algorithm>
+#include <array>
 #include <limits>
+#include <memory>
+#include <queue>
 #include <string>
 #include <utility>
 
@@ -446,11 +450,11 @@ Rabbit FindNearestRabbit(const Coord& head, const std::vector<Rabbit>& rabbits)
     return nearest_rabbit;
 }
 
-Direction GetRabbitDirection(const Rabbit& nearest_rabbit,
+Direction GetRabbitDirection(const Coord coord_rabbit,
     const Coord& head, const Direction& default_dir)
 {
-    int delta_x = nearest_rabbit.body_.x - head.x;
-    int delta_y = nearest_rabbit.body_.y - head.y;
+    int delta_x = coord_rabbit.x - head.x;
+    int delta_y = coord_rabbit.y - head.y;
 
     Direction dir = default_dir;
 
@@ -480,6 +484,12 @@ Direction RotateDir(const Direction dir)
 
 using dangermap_t = typename std::vector<std::vector<int>>;
 using blockmap_t  = typename std::vector<std::vector<bool>>;
+inline constexpr std::array<Direction, 4> kDirections{
+    Direction::LEFT,
+    Direction::RIGHT,
+    Direction::UP,
+    Direction::DOWN
+};
 
 template <typename T>
 std::unique_ptr<std::vector<std::vector<T>>> CreateMap(int size_x, int size_y, T init_value)
@@ -494,9 +504,170 @@ struct AStarResult {
     bool found = false;
 };
 
-AStarResult AStar(Coord start, Coord goal, dangermap_t& dangermap, blockmap_t& block_map)
+bool IsInsidePlayable(Coord coord, int width, int height)
 {
-    
+    return coord.x >= 1
+        && coord.y >= 1
+        && coord.x <= width - 2
+        && coord.y <= height - 2;
+}
+
+Coord WrapPlayableCoord(Coord coord, int width, int height)
+{
+    if(coord.x <= 0)
+        coord.x = width - 2;
+    else if(coord.x >= width - 1)
+        coord.x = 1;
+
+    if(coord.y <= 0)
+        coord.y = height - 2;
+    else if(coord.y >= height - 1)
+        coord.y = 1;
+
+    return coord;
+}
+
+Direction GetNextDirection(Coord head,
+                           Coord next_coord,
+                           int width,
+                           int height,
+                           Direction fallback_dir)
+{
+    for(const Direction dir : kDirections) {
+        Coord candidate = WrapPlayableCoord(head + dir, width, height);
+        if(candidate == next_coord)
+            return dir;
+    }
+
+    return fallback_dir;
+}
+
+struct AStarNode final {
+    Coord coord{};
+    int g_score = 0;
+    int f_score = 0;
+};
+
+struct AStarNodeCompare final {
+    bool operator()(const AStarNode& lhs, const AStarNode& rhs) const
+    {
+        if(lhs.f_score == rhs.f_score)
+            return lhs.g_score > rhs.g_score;
+        return lhs.f_score > rhs.f_score;
+    }
+};
+
+AStarResult AStar(Coord start,
+                  Coord goal,
+                  const dangermap_t& danger_map,
+                  const blockmap_t& block_map)
+{
+    AStarResult result{};
+
+    if(block_map.empty() || block_map.front().empty())
+        return result;
+
+    if(danger_map.empty() || danger_map.front().empty())
+        return result;
+
+    const int height = static_cast<int>(block_map.size());
+    const int width = static_cast<int>(block_map.front().size());
+
+    if(height <= 2 || width <= 2)
+        return result;
+
+    if(static_cast<int>(danger_map.size()) < height
+    || static_cast<int>(danger_map.front().size()) < width)
+        return result;
+
+    start = WrapPlayableCoord(start, width, height);
+    goal = WrapPlayableCoord(goal, width, height);
+
+    if(!IsInsidePlayable(start, width, height)
+    || !IsInsidePlayable(goal, width, height))
+        return result;
+
+    if(start == goal) {
+        result.found = true;
+        result.cost = 0;
+        return result;
+    }
+
+    constexpr int kInf = std::numeric_limits<int>::max() / 4;
+    auto g_scores = CreateMap<int>(width, height, kInf);
+    auto closed = CreateMap<bool>(width, height, false);
+    auto parent = std::make_unique<std::vector<std::vector<Coord>>>(
+        height, std::vector<Coord>(width, Coord{-1, -1}));
+
+    std::priority_queue<AStarNode,
+                        std::vector<AStarNode>,
+                        AStarNodeCompare> open_set{};
+
+    (*g_scores)[start.y][start.x] = 0;
+    open_set.push({start, 0, static_cast<int>(Distance(start, goal))});
+
+    while(!open_set.empty()) {
+        const AStarNode current = open_set.top();
+        open_set.pop();
+
+        const Coord current_coord = current.coord;
+        if((*closed)[current_coord.y][current_coord.x])
+            continue;
+
+        if(current.g_score > (*g_scores)[current_coord.y][current_coord.x])
+            continue;
+
+        (*closed)[current_coord.y][current_coord.x] = true;
+
+        if(current_coord == goal) {
+            result.found = true;
+            result.cost = static_cast<std::size_t>(current.g_score);
+
+            Coord cursor = goal;
+            while(!(cursor == start)) {
+                result.path.push_back(cursor);
+                const Coord prev = (*parent)[cursor.y][cursor.x];
+                if(prev.x < 0 || prev.y < 0) {
+                    result.found = false;
+                    result.path.clear();
+                    result.cost = 0;
+                    return result;
+                }
+
+                cursor = prev;
+            }
+
+            std::reverse(result.path.begin(), result.path.end());
+            return result;
+        }
+
+        for(const Direction dir : kDirections) {
+            Coord stepped = current_coord;
+            stepped += dir;
+            const Coord neighbor = WrapPlayableCoord(stepped, width, height);
+            if(!IsInsidePlayable(neighbor, width, height))
+                continue;
+
+            if(block_map[neighbor.y][neighbor.x] && !(neighbor == goal))
+                continue;
+
+            if((*closed)[neighbor.y][neighbor.x])
+                continue;
+
+            const int step_cost = 1 + std::max(0, danger_map[neighbor.y][neighbor.x]);
+            const int tentative_g = current.g_score + step_cost;
+
+            if(tentative_g < (*g_scores)[neighbor.y][neighbor.x]) {
+                (*g_scores)[neighbor.y][neighbor.x] = tentative_g;
+                (*parent)[neighbor.y][neighbor.x] = current_coord;
+
+                const int heuristic = static_cast<int>(Distance(neighbor, goal));
+                open_set.push({neighbor, tentative_g, tentative_g + heuristic});
+            }
+        }
+    }
+
+    return result;
 }
 
 } // namespace
@@ -505,10 +676,14 @@ std::unique_ptr<blockmap_t> Model::BuildBlockMap() const
 {
     auto block_map_ptr = CreateMap<bool>(win_size_.x, win_size_.y, false);
     auto& block_map = *block_map_ptr;
+    const int height = static_cast<int>(block_map.size());
+    const int width = block_map.empty() ? 0 : static_cast<int>(block_map.front().size());
 
     for(auto&& snake : snakes_)
         for(auto&& bodypart : snake.body_)
-            block_map[bodypart.y][bodypart.x] = true;
+            if(bodypart.y >= 0 && bodypart.y < height
+            && bodypart.x >= 0 && bodypart.x < width)
+                block_map[bodypart.y][bodypart.x] = true;
 
     return block_map_ptr;
 }
@@ -568,14 +743,15 @@ Model::GetRabbitCandidates(Coord head, std::size_t num_rabbits) const
 Direction Model::DumbBot(Snake& snake) const
 {
     const Coord head = snake.body_[0];
-    return GetRabbitDirection(FindNearestRabbit(head, rabbits_), head, snake.dir_);
+    Rabbit rabbit = FindNearestRabbit(head, rabbits_);
+    return GetRabbitDirection(rabbit.body_, head, snake.dir_);
 }
 
 Direction Model::MediumBot(Snake& snake) const
 {
     const Coord head = snake.body_[0];
     const Rabbit nearest_rabbit = FindNearestRabbit(head, rabbits_);
-    Direction dir = GetRabbitDirection(nearest_rabbit, head, snake.dir_);
+    Direction dir = GetRabbitDirection(nearest_rabbit.body_, head, snake.dir_);
 
     if(SnakesOverlapped(static_cast<Coord>(head) + dir))
         return RotateDir(dir);
@@ -585,15 +761,51 @@ Direction Model::MediumBot(Snake& snake) const
 
 Direction Model::SmartyBot(Snake& snake) const
 {
-    Coord head = snake.body_[0];
+    const Coord head = snake.body_[0];
     auto rabbit_cand = GetRabbitCandidates(head, 10);
     auto blockmap  = BuildBlockMap();
     auto dangermap = BuildDangerMap();
 
-    std::size_t 
-    for(auto&& rabbit : *rabbit_cand) {
-        AStarResult result = AStar(head, rabbit.rabbit->body_, *dangermap, *blockmap);
+    if(rabbit_cand->empty() || blockmap->empty() || blockmap->front().empty())
+        return MediumBot(snake);
+
+    if(head.y >= 0
+    && head.y < static_cast<int>(blockmap->size())
+    && head.x >= 0
+    && head.x < static_cast<int>(blockmap->front().size()))
+        (*blockmap)[head.y][head.x] = false;
+
+    const int height = static_cast<int>(blockmap->size());
+    const int width = static_cast<int>(blockmap->front().size());
+
+    std::size_t best_cost = std::numeric_limits<std::size_t>::max();
+    Direction best_direction = Direction::UNDEFINED;
+
+    for(const auto& rabbit : *rabbit_cand) {
+        const AStarResult result =
+            AStar(head, rabbit.rabbit->body_, *dangermap, *blockmap);
+
+        if(!result.found || result.path.empty())
+            continue;
+
+        const Direction candidate_dir = GetNextDirection(
+            head,
+            result.path.front(),
+            width,
+            height,
+            snake.dir_);
+
+        if(candidate_dir == Direction::UNDEFINED)
+            continue;
+
+        if(result.cost < best_cost) {
+            best_cost = result.cost;
+            best_direction = candidate_dir;
+        }
     }
+
+    if(best_direction != Direction::UNDEFINED)
+        return best_direction;
 
     return MediumBot(snake);
 }

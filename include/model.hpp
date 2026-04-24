@@ -11,6 +11,7 @@
 #include "decor.hpp"
 #include "rabbit.hpp"
 #include "snake.hpp"
+#include "power.hpp"
 
 namespace snake_game {
 
@@ -43,6 +44,7 @@ public:
 
     std::list<Snake> snakes_{};
     std::vector<Rabbit> rabbits_{};
+    std::vector<Power> powers_{};
     std::vector<Snake*> hcontrol_{};
     std::vector<Updates> updates_{};
     std::chrono::milliseconds tic_time_{};
