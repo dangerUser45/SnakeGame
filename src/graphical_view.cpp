@@ -47,6 +47,12 @@ sf::Color ShiftColor(sf::Color color, int delta)
     return {shift(color.r), shift(color.g), shift(color.b), color.a};
 }
 
+sf::Color WithAlpha(sf::Color color, std::uint8_t alpha)
+{
+    color.a = alpha;
+    return color;
+}
+
 std::string GetBotAlgorithmLabel(BotAlgorithm algorithm)
 {
     switch(algorithm) {
@@ -425,9 +431,14 @@ struct GraphicalView::Impl final {
 
     void DrawSnake(const Snake& snake, const Layout& layout)
     {
-        const sf::Color body_color = GetSnakeColor(snake.color_);
-        const sf::Color head_color = ShiftColor(body_color, 18);
-        const sf::Color outline_color = ShiftColor(body_color, -70);
+        sf::Color body_color = GetSnakeColor(snake.color_);
+        sf::Color head_color = ShiftColor(body_color, 18);
+        sf::Color outline_color = ShiftColor(body_color, -70);
+        if(snake.is_power_active) {
+            body_color = WithAlpha(body_color, 105);
+            head_color = WithAlpha(head_color, 120);
+            outline_color = WithAlpha(outline_color, 95);
+        }
         const float margin = std::max(1.f, layout.cell_size_ * 0.08f);
         const float block_size = std::max(1.f, layout.cell_size_ - 2.f * margin);
 

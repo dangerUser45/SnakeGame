@@ -18,7 +18,8 @@ public:
     BotAlgorithm bot_{BotAlgorithm::SMARTY};
     int kill_num = 0;
     bool is_live_ = true;
-    bool is_power_activ = false;
+    bool is_power_active = false;
+    int power_ticks_left = 0;
 
     Snake(Direction dir = Direction::UP);
     

@@ -4,7 +4,7 @@
 
 namespace snake_game {
 
-constexpr int ABILITY_TIME = 10; //10 tics 
+constexpr int ABILITY_TIME = 60; // ticks
 
 struct Power final {
     Coord body_;

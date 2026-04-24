@@ -48,7 +48,7 @@ Model::Model(Coord win_size,
     SetSnakesColor();
     SetSnakesBotAlorithms();
 
-    std::uniform_int_distribution<int> num_tics(1, 15);
+    std::uniform_int_distribution<int> num_tics(70, 100);
     power_spawn_capacity_ = num_tics(gen_);
 }
 
@@ -59,7 +59,7 @@ void Model::Update()
     SnakesUpdate();
     RemoveDeadSnakes();
     if(!snakes_.empty()) GenerateRabbits();
-    // if(IsSpawnPower()) GeneratePowers(); // TODO
+    if(IsSpawnPower()) GeneratePowers(); // TODO
 }
 
 void Model::ClearOldUpdates() { updates_.clear(); }
@@ -79,25 +79,20 @@ void Model::MoveSnakes()
 
 bool Model::IsSpawnPower()
 {
-    // if(power_spawn_counter_ < power_spawn_capacity_ ||
-    //    powers_.size() == 1) {
-    //     ++power_spawn_counter_;
-    //     return false;
-    // }
+    if(powers_.size() == 1) return false;
+    else {
+        if(power_spawn_counter_ < power_spawn_capacity_) {
+            ++power_spawn_counter_;
+            return false;
+        }
+        else {
+            power_spawn_counter_ = 0;
+            std::uniform_int_distribution<int> num_tics(70, 100);
+            power_spawn_capacity_ = num_tics(gen_);
 
-    // else {
-    //     power_spawn_counter_ = 0;
-    //     std::uniform_int_distribution<int> num_tics(1, 15);
-    //     power_spawn_capacity_ = num_tics(gen_);
-    //     return true;
-    // }
-
-    // if(powers_.size() == 1) return false;
-    // else {
-    //     if(power_spawn_counter_ < power_spawn_capacity_)
-    //         return false;
-    //     else 
-    // }
+            return true;
+        }
+    }
 }
 
 void Model::RemoveDeadSnakes()
@@ -368,6 +363,8 @@ bool Model::RabbitsOverlapped(Coord coord) const
 
 void Model::Crashes(std::list<Snake>::iterator& it, Coord head_coord)
 {
+    if(it->is_power_active) return; 
+
     for(auto killer = snakes_.begin(), end = snakes_.end(); killer != end; ++killer) {
         auto body_part = killer->body_.cbegin();
         if(killer == it)
@@ -416,6 +413,14 @@ void Model::SnakesUpdate()
 {
     for(auto snake_it = snakes_.begin(), end = snakes_.end(); snake_it != end;
         ++snake_it) {
+        if(snake_it->is_power_active) {
+            --snake_it->power_ticks_left;
+            if(snake_it->power_ticks_left <= 0) {
+                snake_it->is_power_active = false;
+                snake_it->power_ticks_left = 0;
+            }
+        }
+
         BoundariesTeleportation(*snake_it, snake_it->body_.front());
         Coord head_coord = snake_it->body_.front();
 
@@ -440,7 +445,8 @@ void Model::ActivatingPower(Snake& snake, Coord new_head_coord)
     std::vector<Power>::const_iterator iter;
     if(PowersOverlapped(new_head_coord, iter)) {
         powers_.erase(iter);
-        snake.is_power_activ = true;
+        snake.is_power_active = true;
+        snake.power_ticks_left = ABILITY_TIME;
     }
 }
 
