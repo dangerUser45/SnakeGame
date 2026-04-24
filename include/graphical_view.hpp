@@ -10,6 +10,12 @@ public:
         return std::nullopt;
     }
 
+    [[nodiscard]] bool CanRenderGameplay(const Model& model) const override
+    {
+        (void) model;
+        return true;
+    }
+
     void Render( Model& model) override
     {
         //TODO убрать заглушку

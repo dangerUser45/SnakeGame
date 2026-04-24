@@ -14,6 +14,7 @@ private:
     std::unique_ptr<View> view_;
     bool should_exit_ = false;
     bool is_game_paused_ = false;
+    bool is_viewport_blocked_ = false;
 
 public:
     Controller(Options& opt);

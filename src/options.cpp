@@ -1,6 +1,8 @@
-#include "options.hpp"
-#include "model.hpp"
 #include <stdexcept>
+
+#include "limits.hpp"
+#include "model.hpp"
+#include "options.hpp"
 
 namespace snake_game {
 
@@ -37,7 +39,7 @@ long int Options::GetNum(long int min, long int max, const std::string& label)
         err_message_ += "Error: you must use only digits\n";
 
     else if(num < min || num > max) 
-        err_message_ += "Error: Incorrect" + label + ". Please, enter number in ["
+        err_message_ += "Error: Incorrect " + label + ". Please, enter number in ["
                     + std::to_string(min) + " - "
                     + std::to_string(max) + "]\n";;
 
@@ -131,8 +133,24 @@ void Options::GetOptions(int argc, char **argv)
                 };
 
                 if(parse_num(value.substr(0, sep), "width", width)
-                && parse_num(value.substr(sep + 1), "height", height))
-                    win_size_ = {width, height};
+                && parse_num(value.substr(sep + 1), "height", height)) {
+                
+                bool err_win_size = false; 
+                if(width < limits::MIN_WIN_WIDTH || width > limits::MAX_WIN_WIDTH)
+                    err_win_size = true;
+                if(height < limits::MIN_WIN_HEIGHT || height > limits::MAX_WIN_HEIGHT)
+                    err_win_size = true;
+
+                if(err_win_size)
+                    err_message_ += "Error: Incorrect window size. Size must "
+                        "be within the range {"
+                        + std::to_string(limits::MIN_WIN_WIDTH)  + ", "
+                        + std::to_string(limits::MIN_WIN_HEIGHT) + "} ... {"
+                        + std::to_string(limits::MAX_WIN_WIDTH)  + ", "
+                        + std::to_string(limits::MAX_WIN_HEIGHT) +"}\n";
+                }
+
+                win_size_ = {width, height};
 
                 break;
             }

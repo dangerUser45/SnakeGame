@@ -22,8 +22,8 @@ Direction GetRandomDirection(std::mt19937& gen)
         case 2: return Direction::LEFT;
         case 3: return Direction::RIGHT;
 
-        default: std::cerr << "Error: Unknown direction" << std::endl;
-            return Direction::UNKNOWN;
+        default: std::cerr << "Error: Undefined direction" << std::endl;
+            return Direction::UNDEFINED;
     }
 }
 

@@ -1,16 +1,16 @@
 #pragma once
 
 #include <chrono>
+#include <list>
 #include <random>
 #include <unistd.h>
 #include <utility>
 #include <vector>
-#include <list>
 
+#include "coord.hpp"
 #include "decor.hpp"
 #include "rabbit.hpp"
 #include "snake.hpp"
-#include "coord.hpp"
 
 namespace snake_game {
 
@@ -41,8 +41,6 @@ public:
 
     Coord win_size_;
 
-    using SnakeIterT = std::list<Snake>::iterator;
-
     std::list<Snake> snakes_{};
     std::vector<Rabbit> rabbits_{};
     std::vector<Snake*> hcontrol_{};
@@ -58,8 +56,9 @@ public:
     struct Builder;
     
 private:
+
     void SnakesUpdate();
-    void SpawnNewSnake(Snake& snake, int* counter);
+    void SpawnNewSnake(Snake& snake, int& counter);
     void InsertSnake(Snake& snake,
                      Coord head, Coord second_part, Coord third_part);
     void GenerateRabbits();
@@ -71,19 +70,37 @@ private:
     [[nodiscard]] bool RabbitsOverlapped(Coord coord, std::vector<Rabbit>::const_iterator& rabbit_iter) const;
     [[nodiscard]] bool RabbitsOverlapped(Coord coord) const;
 
+    void SetSnakesBotAlorithms();
+
+    struct RabbitDistance final {
+        const Rabbit* rabbit;
+        std::size_t distance;
+    };
+
+    std::unique_ptr<std::vector<Model::RabbitDistance>>
+    GetRabbitCandidates(Coord head, std::size_t num_rabbits) const;
+
+    [[nodiscard]] Direction BotAlgorithm(Snake& snake) const;
+    [[nodiscard]] Direction DumbBot(Snake& snake) const;
+    [[nodiscard]] Direction MediumBot(Snake& snake) const;
+    [[nodiscard]] Direction SmartyBot(Snake& snake) const;
+
     void MoveSnakes();
     void RemoveDeadSnakes();
-    
+
     void Crashes(std::list<Snake>::iterator& it, Coord new_head_coord);
     void ZeroizeHContrSnake(std::list<Snake>::iterator it);
     void EatingRabbits(Snake& snake, Coord coord);
     void BoundariesTeleportation(Snake& snake, Coord coord);
-    void FillSnakesColor();
+    void SetSnakesColor();
     void ClearOldUpdates();
+
+    std::unique_ptr<std::vector<std::vector<bool>>> BuildBlockMap() const;
+    std::unique_ptr<std::vector<std::vector<int>>> BuildDangerMap() const;
 
     bool game_over_ = false;
 
-    static constexpr int DEFAULT_WIDTH           = 145;
+    static constexpr int DEFAULT_WIDTH           = 120;
     static constexpr int DEFAULT_HEIGTH          = 34;
     static constexpr ViewMode DEFAULT_VIEW_MODE  = ViewMode::TERMINAL_VIEW; 
     static constexpr int DEFAULT_NUM_BOTS        = 2;

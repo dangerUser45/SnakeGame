@@ -1,9 +1,12 @@
-#include <functional>
+#include <limits>
+#include <string>
 #include <utility>
 
 #include "coord.hpp"
 #include "decor.hpp"
+#include "limits.hpp"
 #include "model.hpp"
+#include "snake.hpp"
 
 namespace snake_game {
 
@@ -27,17 +30,19 @@ Model::Model(Coord win_size,
     for(int i = 0; i < num_players; ++i) {
         ++counter;
         snakes_.emplace_back();
-        SpawnNewSnake(snakes_.back(), &counter);
+        SpawnNewSnake(snakes_.back(), counter);
         hcontrol_.emplace_back(&(snakes_.back()));
     }
 
     for(int i = 0; i < num_bots; ++i) {
         ++counter;
         snakes_.emplace_back();
-        SpawnNewSnake(snakes_.back(), &counter);
+        SpawnNewSnake(snakes_.back(), counter);
     }
 
-    FillSnakesColor();
+    SetSnakesColor();
+    SetSnakesBotAlorithms();
+
 }
 
 void Model::Update()
@@ -58,9 +63,9 @@ void Model::MoveSnakes()
         snake_it.Move();
 
         updates_.push_back({old_head, snake_it.color_,
-                            UpdKind::SNAKE_BODY, Direction::UNKNOWN});
+                            UpdKind::SNAKE_BODY, Direction::UNDEFINED});
         updates_.push_back({snake_it.prev_tail_, ObjColor::WITHOUT_COLOR,
-                            UpdKind::EMPTY, Direction::UNKNOWN});
+                            UpdKind::EMPTY, Direction::UNDEFINED});
     }
 }
 
@@ -77,7 +82,7 @@ void Model::RemoveDeadSnakes()
             }
             for(; body != tail; ++body) {
                     updates_.push_back({*body, ObjColor::WITHOUT_COLOR,
-                                        UpdKind::EMPTY, Direction::UNKNOWN});
+                                        UpdKind::EMPTY, Direction::UNDEFINED});
             }
             it = snakes_.erase(it);
         }
@@ -101,14 +106,14 @@ void Model::GenerateRabbits()
         if(!SnakesOverlapped(rabbit_coord) && !RabbitsOverlapped(rabbit_coord)) {
             rabbits_.emplace_back(rabbit_coord);
             updates_.push_back({rabbit_coord, ObjColor::WITHOUT_COLOR,
-                                UpdKind::RABBIT, Direction::UNKNOWN});
+                                UpdKind::RABBIT, Direction::UNDEFINED});
         }
     }
 }
 
-void Model::SpawnNewSnake(Snake& snake, int* counter)
+void Model::SpawnNewSnake(Snake& snake, int& counter)
 {
-    auto corners_coord = GetSector(*counter);
+    auto corners_coord = GetSector(counter);
     Coord head = GetRandomCoord(corners_coord.first, corners_coord.second, gen_);
     Direction dir = GetRandomDirection(gen_);
     snake.dir_ = dir;
@@ -182,9 +187,11 @@ std::pair<Coord, Coord> Model::GetSector(int counter)
         rows = 2;
     }
     else { 
-        // TODO добавить вместо числа константную переменную
-        throw std::runtime_error("Error: total number of snakes "
-                                 "must be less than or equal to 6\n");
+        std::string err =
+            "Error: total number of snakes must be less than or equal to "
+            + std::to_string(limits::MAX_NUM_BOTS + limits::MAX_NUM_PLAYERS)
+            + "\n";
+        throw std::runtime_error(err);
     }
 
     const int col = counter % cols;
@@ -246,7 +253,7 @@ bool Model::SnakesOverlapped(Coord coord, Updates& updates) const
         if(!snake.is_live_) continue;
         for(auto&& body_part : snake.body_)
             if(body_part == coord) {
-                updates = {body_part, snake.color_, UpdKind::SNAKE_BODY, Direction::UNKNOWN};
+                updates = {body_part, snake.color_, UpdKind::SNAKE_BODY, Direction::UNDEFINED};
                 return true;
             }
             else continue;
@@ -290,11 +297,21 @@ bool Model::RabbitsOverlapped(Coord coord) const
 
 void Model::Crashes(std::list<Snake>::iterator& it, Coord head_coord)
 {
-    if(SnakesOverlapped(head_coord, it)) {
-        ZeroizeHContrSnake(it);
-        it->is_live_ = false;
+    for(auto killer = snakes_.begin(), end = snakes_.end(); killer != end; ++killer) {
+        auto body_part = killer->body_.cbegin();
+        if(killer == it)
+            ++body_part;
+
+        for(auto body_end = killer->body_.cend(); body_part != body_end; ++body_part)
+            if(*body_part == head_coord) {
+                if(killer != it)
+                    ++killer->kill_num;
+
+                ZeroizeHContrSnake(it);
+                it->is_live_ = false;
+                return;
+            }
     }
-    return;
 }
 
 void Model::BoundariesTeleportation(Snake& snake, Coord coord)
@@ -328,10 +345,13 @@ void Model::SnakesUpdate()
 {
     for(auto snake_it = snakes_.begin(), end = snakes_.end(); snake_it != end;
         ++snake_it) {
-        // Direction dir = snake_it->move_algorythm_();
-        // snake_it->ChangeDir(dir); // TODO добавить алгоритмы
         BoundariesTeleportation(*snake_it, snake_it->body_.front());
         Coord head_coord = snake_it->body_.front();
+
+        if(snake_it->bot_ != BotAlgorithm::NOT_BOT) {
+            Direction dir = BotAlgorithm(*snake_it);
+            snake_it->ChangeDir(dir);
+        }
 
         updates_.push_back({head_coord, snake_it->color_,
                             UpdKind::SNAKE_HEAD, snake_it->dir_});
@@ -353,7 +373,7 @@ void Model::EatingRabbits(Snake& snake, Coord new_head_coord)
         // возвращаем клетку хвоста, которую убрали на ходе выше
         snake.body_.emplace_back(snake.prev_tail_);
         updates_.push_back({snake.prev_tail_, snake.color_,
-                            UpdKind::SNAKE_BODY, Direction::UNKNOWN});
+                            UpdKind::SNAKE_BODY, Direction::UNDEFINED});
     }
 }
 
@@ -364,13 +384,192 @@ void Model::ZeroizeHContrSnake(std::list<Snake>::iterator it)
             elem = nullptr;
 }
 
-void Model::FillSnakesColor()
+void Model::SetSnakesColor()
 {
-    std::uint8_t i = 0;
+    std::size_t i = 0;
     for(auto&& snake : snakes_) {
-        snake.color_ = static_cast<ObjColor>(i % static_cast<uint8_t>(ObjColor::WITHOUT_COLOR));
+        snake.color_ = static_cast<enum ObjColor>(i % static_cast<std::size_t>(ObjColor::WITHOUT_COLOR));
         ++i;
     }
+}
+
+void Model::SetSnakesBotAlorithms()
+{
+    std::size_t counter = 0;
+    int cnt = 0;
+    for(auto&& snake : snakes_) {
+        for(auto&& hcontrol : hcontrol_)
+            if(&snake != hcontrol)
+                ++cnt;
+
+        if(cnt == num_players_) {
+            snake.bot_ = static_cast<enum BotAlgorithm>(counter % static_cast<std::size_t>(BotAlgorithm::NOT_BOT));
+            ++counter;
+        }
+        else snake.bot_ = BotAlgorithm::NOT_BOT;
+        cnt = 0;
+    }
+}
+
+Direction Model::BotAlgorithm(Snake& snake) const
+{
+    switch(snake.bot_) {
+        case BotAlgorithm::DUMB:   return DumbBot(snake);
+        case BotAlgorithm::MEDIUM: return MediumBot(snake);
+        case BotAlgorithm::SMARTY: return SmartyBot(snake);
+        
+        default: return Direction::UNDEFINED;
+    }
+}
+
+namespace {
+
+std::size_t Distance(Coord first, Coord second)
+{
+    return std::abs(first.x - second.x) + std::abs(first.y - second.y);
+}
+
+Rabbit FindNearestRabbit(const Coord& head, const std::vector<Rabbit>& rabbits)
+{
+    std::size_t min_dist = std::numeric_limits<std::size_t>::max();
+
+    Rabbit nearest_rabbit({0, 0});
+
+    for(auto&& rabbit : rabbits) {
+        auto dist = Distance(head, rabbit.body_);
+        if(dist < min_dist) {
+            min_dist = dist;
+            nearest_rabbit = rabbit;
+        }
+    }
+
+    return nearest_rabbit;
+}
+
+Direction GetRabbitDirection(const Rabbit& nearest_rabbit,
+    const Coord& head, const Direction& default_dir)
+{
+    int delta_x = nearest_rabbit.body_.x - head.x;
+    int delta_y = nearest_rabbit.body_.y - head.y;
+
+    Direction dir = default_dir;
+
+    if(std::abs(delta_x) > std::abs(delta_y)) {
+        if(delta_x > 0) dir = Direction::RIGHT;
+        else            dir = Direction::LEFT;
+    }
+    else {
+        if(delta_y > 0) dir = Direction::DOWN;
+        else            dir = Direction::UP;
+    }
+
+    return dir;
+}
+
+Direction RotateDir(const Direction dir)
+{
+    switch(dir) {
+        case Direction::LEFT:  return Direction::UP;
+        case Direction::RIGHT: return Direction::DOWN;
+        case Direction::UP:    return Direction::RIGHT;
+        case Direction::DOWN:  return Direction::LEFT;
+        
+        default: return Direction::UNDEFINED;
+    }
+}
+
+template <typename T>
+std::unique_ptr<std::vector<std::vector<T>>> CreateMap(int size_x, int size_y, T init_value)
+{
+    return std::make_unique<std::vector
+        <std::vector<T>>>(size_y,std::vector<T>(size_x, init_value));
+}
+
+} // namespace
+
+std::unique_ptr<std::vector<std::vector<bool>>> Model::BuildBlockMap() const
+{
+    auto block_map_ptr = CreateMap<bool>(win_size_.x, win_size_.y, false);
+    auto& block_map = *block_map_ptr;
+
+    for(auto&& snake : snakes_)
+        for(auto&& bodypart : snake.body_)
+            block_map[bodypart.y][bodypart.x] = true;
+
+    return block_map_ptr;
+}
+
+std::unique_ptr<std::vector<std::vector<int>>> Model::BuildDangerMap() const
+{
+    auto danger_map_ptr = CreateMap<int>(win_size_.x + 2, win_size_.y + 2, 0);
+    auto& danger_map = *danger_map_ptr;
+    
+    const int danger_score = 20;
+    for(auto&& snake : snakes_) {
+        const Coord head = snake.body_[0];
+        danger_map[head.y - 1][head.x - 1] = danger_score;
+        danger_map[head.y - 1][head.x + 0] = danger_score;
+        danger_map[head.y - 1][head.x + 1] = danger_score;
+        danger_map[head.y - 0][head.x + 1] = danger_score;
+        danger_map[head.y + 1][head.x + 1] = danger_score;
+        danger_map[head.y + 1][head.x - 0] = danger_score;
+        danger_map[head.y + 1][head.x - 1] = danger_score;
+        danger_map[head.y + 0][head.x - 1] = danger_score;
+    }
+
+    return danger_map_ptr;
+}
+
+std::unique_ptr<std::vector<Model::RabbitDistance>>
+Model::GetRabbitCandidates(Coord head, std::size_t num_rabbits) const
+{ 
+    auto candidates = std::make_unique<std::vector<RabbitDistance>>();
+
+    for (const auto& rabbit : rabbits_) {
+        std::size_t dist = Distance(head, rabbit.body_);
+        candidates->push_back({&rabbit, dist});
+    }
+
+    std::sort(candidates->begin(), candidates->end(),
+        [](const RabbitDistance& lhs, const RabbitDistance& rhs) {
+            return lhs.distance < rhs.distance;
+        });
+
+    if (candidates->size() > num_rabbits) {
+        candidates->resize(num_rabbits);
+    }
+
+    return candidates;
+}
+
+Direction Model::DumbBot(Snake& snake) const
+{
+    const Coord head = snake.body_[0];
+    return GetRabbitDirection(FindNearestRabbit(head, rabbits_), head, snake.dir_);
+}
+
+Direction Model::MediumBot(Snake& snake) const
+{
+    const Coord head = snake.body_[0];
+    const Rabbit nearest_rabbit = FindNearestRabbit(head, rabbits_);
+    Direction dir = GetRabbitDirection(nearest_rabbit, head, snake.dir_);
+
+    if(SnakesOverlapped(static_cast<Coord>(head) + dir))
+        return RotateDir(dir);
+
+    return dir;
+}
+
+Direction Model::SmartyBot(Snake& snake) const
+{
+    auto rabbit_cand = GetRabbitCandidates(snake.body_[0], 10);
+
+    
+
+    auto block_map  = BuildBlockMap();
+    auto danger_map = BuildDangerMap();
+
+    return snake.dir_;
 }
 
 bool Model::IsGameOver() { return game_over_; }

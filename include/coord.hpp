@@ -5,7 +5,7 @@
 
 namespace snake_game {
 
-enum class Direction { UNKNOWN, LEFT, RIGHT, UP, DOWN };
+enum class Direction { UNDEFINED, LEFT, RIGHT, UP, DOWN };
 
 struct Coord {
     int x,y;
