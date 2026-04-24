@@ -458,6 +458,25 @@ struct GraphicalView::Impl final {
         window_.draw(body);
     }
 
+    void DrawPower(const Power& power, const Layout& layout)
+    {
+        const sf::Vector2f cell = CellPosition(power.body_, layout);
+        const float size = std::max(2.f, layout.cell_size_ * 0.52f);
+        const sf::Vector2f origin{
+            std::round(cell.x + (layout.cell_size_ - size) * 0.5f),
+            std::round(cell.y + (layout.cell_size_ - size) * 0.5f)
+        };
+
+        sf::RectangleShape body({size, size});
+        body.setPosition(origin);
+        body.setFillColor({171, 71, 188});
+        if(layout.cell_size_ >= 10.f) {
+            body.setOutlineThickness(-1.f);
+            body.setOutlineColor({109, 40, 130});
+        }
+        window_.draw(body);
+    }
+
     void DrawStatsPreview(sf::Vector2f origin, float cell_size, sf::Color color)
     {
         const sf::Color head_color = ShiftColor(color, 18);
@@ -698,6 +717,9 @@ void GraphicalView::Render(Model& model)
                      layout.field_panel_size_,
                      layout.panel_radius_,
                      layout.outline_thickness_);
+
+    for(const auto& power : model.powers_)
+        impl_->DrawPower(power, layout);
 
     for(const auto& rabbit : model.rabbits_)
         impl_->DrawRabbit(rabbit, layout);

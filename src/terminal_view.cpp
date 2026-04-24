@@ -694,6 +694,7 @@ const std::string_view TerminalView::Impl::DrawUpdate(Model::Updates& update)
         case Model::UpdKind::SNAKE_BODY: return glyphs::SNAKE_BODY;
         case Model::UpdKind::SNAKE_HEAD: return DrawSnakeHead(update.dir_);
         case Model::UpdKind::RABBIT:     return glyphs::RABBIT_BODY;
+        case Model::UpdKind::POWER:      return glyphs::POWER_BOX;
 
         default: throw std::runtime_error("Error: uknwon kind of updates\n");
     }

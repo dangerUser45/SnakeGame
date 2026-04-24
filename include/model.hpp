@@ -32,7 +32,7 @@ public:
     void Update();
     bool IsGameOver();
 
-    enum class UpdKind { EMPTY, SNAKE_BODY, SNAKE_HEAD, RABBIT };
+    enum class UpdKind { EMPTY, SNAKE_BODY, SNAKE_HEAD, RABBIT, POWER };
     struct Updates {
         Coord coord_;
         ObjColor color_;
@@ -54,6 +54,9 @@ public:
     ViewMode view_mode_;
 
     std::mt19937 gen_{std::random_device{}()};
+    
+    int power_spawn_counter_ = 0;
+    int power_spawn_capacity_{};
 
     struct Builder;
     
@@ -64,13 +67,20 @@ private:
     void InsertSnake(Snake& snake,
                      Coord head, Coord second_part, Coord third_part);
     void GenerateRabbits();
+    void GeneratePowers();
+    [[nodiscard]] bool IsSpawnPower();
+
     [[nodiscard]] std::pair<Coord, Coord> GetSector(int snake_num);
+
+    void ActivatingPower(Snake& snake, Coord new_head_coord);
 
     [[nodiscard]] bool SnakesOverlapped(Coord coord) const;
     [[nodiscard]] bool SnakesOverlapped(Coord coord, Updates& updates) const;
     [[nodiscard]] bool SnakesOverlapped(Coord coord, std::list<Snake>::iterator& current_snake) const;
     [[nodiscard]] bool RabbitsOverlapped(Coord coord, std::vector<Rabbit>::const_iterator& rabbit_iter) const;
     [[nodiscard]] bool RabbitsOverlapped(Coord coord) const;
+    [[nodiscard]] bool PowersOverlapped(Coord coord) const;
+    [[nodiscard]] bool PowersOverlapped(Coord coord, std::vector<Power>::const_iterator& iter) const;
 
     void SetSnakesBotAlorithms();
 

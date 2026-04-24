@@ -3,6 +3,7 @@
 #include <limits>
 #include <memory>
 #include <queue>
+#include <random>
 #include <string>
 #include <utility>
 
@@ -47,6 +48,8 @@ Model::Model(Coord win_size,
     SetSnakesColor();
     SetSnakesBotAlorithms();
 
+    std::uniform_int_distribution<int> num_tics(1, 15);
+    power_spawn_capacity_ = num_tics(gen_);
 }
 
 void Model::Update()
@@ -56,6 +59,7 @@ void Model::Update()
     SnakesUpdate();
     RemoveDeadSnakes();
     if(!snakes_.empty()) GenerateRabbits();
+    // if(IsSpawnPower()) GeneratePowers(); // TODO
 }
 
 void Model::ClearOldUpdates() { updates_.clear(); }
@@ -71,6 +75,29 @@ void Model::MoveSnakes()
         updates_.push_back({snake_it.prev_tail_, ObjColor::WITHOUT_COLOR,
                             UpdKind::EMPTY, Direction::UNDEFINED});
     }
+}
+
+bool Model::IsSpawnPower()
+{
+    // if(power_spawn_counter_ < power_spawn_capacity_ ||
+    //    powers_.size() == 1) {
+    //     ++power_spawn_counter_;
+    //     return false;
+    // }
+
+    // else {
+    //     power_spawn_counter_ = 0;
+    //     std::uniform_int_distribution<int> num_tics(1, 15);
+    //     power_spawn_capacity_ = num_tics(gen_);
+    //     return true;
+    // }
+
+    // if(powers_.size() == 1) return false;
+    // else {
+    //     if(power_spawn_counter_ < power_spawn_capacity_)
+    //         return false;
+    //     else 
+    // }
 }
 
 void Model::RemoveDeadSnakes()
@@ -96,6 +123,23 @@ void Model::RemoveDeadSnakes()
     if(snakes_.empty()) game_over_ = true;
 }
 
+void Model::GeneratePowers()
+{
+    std::pair<Coord, Coord> corners;
+    corners.first.x = 1;
+    corners.first.y = 1;
+
+    corners.second.x = win_size_.x - 2;
+    corners.second.y = win_size_.y - 2;
+    
+    Coord power_coord = GetRandomCoord(corners.first, corners.second, gen_);
+    if(!SnakesOverlapped(power_coord) && !RabbitsOverlapped(power_coord)) {
+        powers_.emplace_back(power_coord);
+        updates_.push_back({power_coord, ObjColor::PURPLE,
+                            UpdKind::POWER, Direction::UNDEFINED});
+    }
+}
+
 void Model::GenerateRabbits()
 {
     if(rabbits_.size() < rabb_per_snake_ * snakes_.size()) {
@@ -107,7 +151,8 @@ void Model::GenerateRabbits()
         corners.second.y = win_size_.y - 2;
         
         Coord rabbit_coord = GetRandomCoord(corners.first, corners.second, gen_);
-        if(!SnakesOverlapped(rabbit_coord) && !RabbitsOverlapped(rabbit_coord)) {
+        if(!SnakesOverlapped(rabbit_coord) && !RabbitsOverlapped(rabbit_coord)
+        && !PowersOverlapped(rabbit_coord)){
             rabbits_.emplace_back(rabbit_coord);
             updates_.push_back({rabbit_coord, ObjColor::WITHOUT_COLOR,
                                 UpdKind::RABBIT, Direction::UNDEFINED});
@@ -289,6 +334,28 @@ bool Model::RabbitsOverlapped(Coord coord, std::vector<Rabbit>::const_iterator& 
     return false;
 }
 
+bool Model::PowersOverlapped(Coord coord) const
+{
+    for(auto power_iter = powers_.cbegin(), cend = powers_.cend(); power_iter != cend; ++power_iter)
+        if(power_iter->body_ == coord)
+            return true;
+        else continue;
+
+    return false;
+}
+
+bool Model::PowersOverlapped(Coord coord, std::vector<Power>::const_iterator& iter) const
+{
+    for(auto power_iter = powers_.cbegin(), cend = powers_.cend(); power_iter != cend; ++power_iter)
+        if(power_iter->body_ == coord) {
+            iter = power_iter;
+            return true;
+        }
+        else continue;
+    
+    return false;
+}
+
 bool Model::RabbitsOverlapped(Coord coord) const
 {
     for(auto rabbit_iter = rabbits_.cbegin(), cend = rabbits_.cend(); rabbit_iter != cend; ++rabbit_iter)
@@ -363,7 +430,17 @@ void Model::SnakesUpdate()
         Crashes(snake_it, head_coord);
         if(snake_it->is_live_) {
             EatingRabbits(*snake_it, head_coord);
+            ActivatingPower(*snake_it, head_coord);
         }
+    }
+}
+
+void Model::ActivatingPower(Snake& snake, Coord new_head_coord)
+{
+    std::vector<Power>::const_iterator iter;
+    if(PowersOverlapped(new_head_coord, iter)) {
+        powers_.erase(iter);
+        snake.is_power_activ = true;
     }
 }
 
