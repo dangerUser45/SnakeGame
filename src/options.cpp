@@ -92,6 +92,13 @@ void Options::GetOptions(int argc, char **argv)
                     break;
             }
 
+            case BOT_CHAMPIONSHIP:
+                bot_championship_rounds_ = GetNum(
+                    limits::MIN_BOT_CHAMPIONSHIP_ROUNDS,
+                    limits::MAX_BOT_CHAMPIONSHIP_ROUNDS,
+                    std::string("number of bot championship rounds"));
+                break;
+
             case WIN_SIZE: {
                 std::string_view value = (optarg != nullptr) ? std::string_view(optarg)
                                                              : std::string_view{};
@@ -164,6 +171,7 @@ void Options::GetOptions(int argc, char **argv)
                 || IsLongOption(arg, "tic_time")
                 || IsLongOption(arg, "view")
                 || IsLongOption(arg, "rabb_per_snake")
+                || IsLongOption(arg, "bot_championship")
                 || IsLongOption(arg, "win_size"))
                     err_message_ += "Error: missing required argument for '" + std::string(arg) + "'\n";
                 else

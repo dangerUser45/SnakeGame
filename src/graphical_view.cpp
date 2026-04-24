@@ -14,7 +14,7 @@ namespace snake_game {
 namespace {
 
 inline constexpr char FontPath[] = "preset/font/geist_bold.ttf";
-inline constexpr char BackgroundPath[] = "preset/img/background-2.jpg";
+inline constexpr char BackgroundPath[] = "preset/img/background.jpg";
 
 inline constexpr float OuterPadding = 28.f;
 inline constexpr float TitleGapY = 18.f;
@@ -101,12 +101,12 @@ struct GraphicalView::Impl final {
     bool has_font_ = false;
     bool has_background_ = false;
 
-    void EnsureWindow(const Model& model)
+    void EnsureWindow(sf::Vector2u initial_size)
     {
         if(is_window_created_)
             return;
 
-        window_.create(sf::VideoMode(GetInitialWindowSize(model)),
+        window_.create(sf::VideoMode(initial_size),
                        "SnakeGame",
                        sf::Style::Default);
         window_.setVerticalSyncEnabled(true);
@@ -114,6 +114,16 @@ struct GraphicalView::Impl final {
         UpdateView(window_.getSize());
         LoadAssets();
         is_window_created_ = true;
+    }
+
+    void EnsureWindow(const Model& model)
+    {
+        EnsureWindow(GetInitialWindowSize(model));
+    }
+
+    void EnsureSummaryWindow()
+    {
+        EnsureWindow({1100u, 760u});
     }
 
     [[nodiscard]] sf::Vector2u GetInitialWindowSize(const Model& model) const
@@ -555,6 +565,65 @@ struct GraphicalView::Impl final {
         }
     }
 
+    void DrawBotChampionship(const BotChampionshipStats& stats)
+    {
+        const sf::Vector2u window_size = window_.getSize();
+        const unsigned int min_dimension = std::min(window_size.x, window_size.y);
+        const unsigned int title_size = std::clamp(min_dimension / 11u, 34u, 58u);
+        const unsigned int body_size = std::clamp(min_dimension / 32u, 16u, 24u);
+        const unsigned int small_size = std::max(13u, body_size - 2u);
+        const float panel_width =
+            std::clamp(static_cast<float>(window_size.x) * 0.72f, 620.f, 900.f);
+        const float panel_height =
+            std::clamp(210.f + static_cast<float>(stats.entries_.size()) * 110.f, 420.f, 620.f);
+        const sf::Vector2f panel_origin = {
+            (static_cast<float>(window_size.x) - panel_width) / 2.f,
+            (static_cast<float>(window_size.y) - panel_height) / 2.f + 40.f
+        };
+        const float padding = 28.f;
+        const float line_step = static_cast<float>(small_size) * 1.6f;
+
+        DrawCenteredText("Bot Championship",
+                         title_size,
+                         {static_cast<float>(window_size.x) / 2.f,
+                          panel_origin.y - 58.f},
+                         {255, 255, 255},
+                         true);
+
+        DrawPanel(panel_origin, {panel_width, panel_height}, 18.f, 2.f);
+
+        DrawTopLeftText("Rounds: " + std::to_string(stats.rounds_)
+                        + "  Draws: " + std::to_string(stats.draws_)
+                        + "  Timeouts: " + std::to_string(stats.timeouts_),
+                        body_size,
+                        {panel_origin.x + padding, panel_origin.y + padding},
+                        {255, 255, 255},
+                        true);
+
+        for(std::size_t i = 0; i < stats.entries_.size(); ++i) {
+            const auto& entry = stats.entries_[i];
+            const float row_top = panel_origin.y + padding + 56.f + static_cast<float>(i) * 110.f;
+
+            DrawStatsPreview({panel_origin.x + padding, row_top + 6.f},
+                             18.f,
+                             GetSnakeColor(entry.color_));
+            DrawTopLeftText(entry.label_,
+                            body_size,
+                            {panel_origin.x + padding + 72.f, row_top},
+                            {255, 255, 255},
+                            true);
+            DrawTopLeftText("Wins: " + std::to_string(entry.wins_)
+                            + "  Survived: " + std::to_string(entry.survived_rounds_),
+                            small_size,
+                            {panel_origin.x + padding + 72.f, row_top + line_step},
+                            {255, 255, 255});
+            DrawTopLeftText("Kills: " + std::to_string(entry.total_kills_),
+                            small_size,
+                            {panel_origin.x + padding + 72.f, row_top + 2.f * line_step},
+                            {255, 255, 255});
+        }
+    }
+
     [[nodiscard]] std::optional<Event> TranslateEvent(const sf::Event& event)
     {
         if(event.is<sf::Event::Closed>()) {
@@ -637,6 +706,18 @@ void GraphicalView::Render(Model& model)
         impl_->DrawSnake(snake, layout);
 
     impl_->DrawStatsWindow(layout);
+    impl_->window_.display();
+}
+
+void GraphicalView::RenderBotChampionship(const BotChampionshipStats& stats)
+{
+    impl_->EnsureSummaryWindow();
+    if(!impl_->window_.isOpen())
+        return;
+
+    impl_->window_.clear({8, 10, 16});
+    impl_->DrawBackground();
+    impl_->DrawBotChampionship(stats);
     impl_->window_.display();
 }
 

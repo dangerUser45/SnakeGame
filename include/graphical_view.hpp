@@ -18,6 +18,7 @@ public:
     [[nodiscard]] std::optional<Event> PollEvents() override;
     [[nodiscard]] bool CanRenderGameplay(const Model& model) const override;
     void Render(Model& model) override;
+    void RenderBotChampionship(const BotChampionshipStats& stats) override;
 
 private:
     struct SnakeStatsEntry final {

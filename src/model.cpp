@@ -478,6 +478,9 @@ Direction RotateDir(const Direction dir)
     }
 }
 
+using dangermap_t = typename std::vector<std::vector<int>>;
+using blockmap_t  = typename std::vector<std::vector<bool>>;
+
 template <typename T>
 std::unique_ptr<std::vector<std::vector<T>>> CreateMap(int size_x, int size_y, T init_value)
 {
@@ -485,9 +488,20 @@ std::unique_ptr<std::vector<std::vector<T>>> CreateMap(int size_x, int size_y, T
         <std::vector<T>>>(size_y,std::vector<T>(size_x, init_value));
 }
 
+struct AStarResult {
+    std::vector<Coord> path;
+    std::size_t cost = 0;
+    bool found = false;
+};
+
+AStarResult AStar(Coord start, Coord goal, dangermap_t& dangermap, blockmap_t& block_map)
+{
+    
+}
+
 } // namespace
 
-std::unique_ptr<std::vector<std::vector<bool>>> Model::BuildBlockMap() const
+std::unique_ptr<blockmap_t> Model::BuildBlockMap() const
 {
     auto block_map_ptr = CreateMap<bool>(win_size_.x, win_size_.y, false);
     auto& block_map = *block_map_ptr;
@@ -499,22 +513,31 @@ std::unique_ptr<std::vector<std::vector<bool>>> Model::BuildBlockMap() const
     return block_map_ptr;
 }
 
-std::unique_ptr<std::vector<std::vector<int>>> Model::BuildDangerMap() const
+std::unique_ptr<dangermap_t> Model::BuildDangerMap() const
 {
     auto danger_map_ptr = CreateMap<int>(win_size_.x + 2, win_size_.y + 2, 0);
     auto& danger_map = *danger_map_ptr;
     
     const int danger_score = 20;
+    const auto add_danger = [&](int x, int y) {
+        if(y < 0 || y >= static_cast<int>(danger_map.size()))
+            return;
+        if(x < 0 || x >= static_cast<int>(danger_map[0].size()))
+            return;
+
+        danger_map[y][x] = danger_score;
+    };
+
     for(auto&& snake : snakes_) {
         const Coord head = snake.body_[0];
-        danger_map[head.y - 1][head.x - 1] = danger_score;
-        danger_map[head.y - 1][head.x + 0] = danger_score;
-        danger_map[head.y - 1][head.x + 1] = danger_score;
-        danger_map[head.y - 0][head.x + 1] = danger_score;
-        danger_map[head.y + 1][head.x + 1] = danger_score;
-        danger_map[head.y + 1][head.x - 0] = danger_score;
-        danger_map[head.y + 1][head.x - 1] = danger_score;
-        danger_map[head.y + 0][head.x - 1] = danger_score;
+        add_danger(head.x - 1, head.y - 1);
+        add_danger(head.x + 0, head.y - 1);
+        add_danger(head.x + 1, head.y - 1);
+        add_danger(head.x + 1, head.y + 0);
+        add_danger(head.x + 1, head.y + 1);
+        add_danger(head.x + 0, head.y + 1);
+        add_danger(head.x - 1, head.y + 1);
+        add_danger(head.x - 1, head.y + 0);
     }
 
     return danger_map_ptr;
@@ -560,24 +583,19 @@ Direction Model::MediumBot(Snake& snake) const
     return dir;
 }
 
-struct AstarPath {
-    std::vector<Coord> path;
-    bool is_blocked;
-    
-};
-
 Direction Model::SmartyBot(Snake& snake) const
 {
-    auto rabbit_cand = GetRabbitCandidates(snake.body_[0], 10);
+    Coord head = snake.body_[0];
+    auto rabbit_cand = GetRabbitCandidates(head, 10);
+    auto blockmap  = BuildBlockMap();
+    auto dangermap = BuildDangerMap();
 
+    std::size_t 
     for(auto&& rabbit : *rabbit_cand) {
-        
+        AStarResult result = AStar(head, rabbit.rabbit->body_, *dangermap, *blockmap);
     }
 
-    auto block_map  = BuildBlockMap();
-    auto danger_map = BuildDangerMap();
-
-    return snake.dir_;
+    return MediumBot(snake);
 }
 
 bool Model::IsGameOver() { return game_over_; }

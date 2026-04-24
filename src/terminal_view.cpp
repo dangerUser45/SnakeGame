@@ -305,6 +305,14 @@ Coord TerminalView::Impl::GetRequiredTerminalSize(const Model& model) const
     return GetContentSize(model);
 }
 
+Coord TerminalView::Impl::GetBotChampionshipSize(const BotChampionshipStats& stats) const
+{
+    return {
+        78,
+        BannerHeight + BannerGapY + 7 + static_cast<int>(stats.entries_.size()) * 3
+    };
+}
+
 Coord TerminalView::Impl::GetMaxSupportedTerminalSize() const
 {
     const Coord stats_size = {
@@ -340,6 +348,70 @@ void TerminalView::Impl::DrawFrame(Coord origin, Coord size) const
     for(int i = 0; i < size.x - 2; ++i)
         std::cout << glyphs::BORDER_HOR;
     std::cout << glyphs::CORNER_BOTTOM_RIGHT;
+}
+
+void TerminalView::Impl::DrawBotChampionship(const BotChampionshipStats& stats)
+{
+    ClearScreen();
+
+    const Coord content_size = GetBotChampionshipSize(stats);
+    const Coord content_origin{
+        std::max(1, (terminal_size_.x - content_size.x) / 2 + 1),
+        std::max(1, (terminal_size_.y - content_size.y) / 2 + 1)
+    };
+    const Coord frame_size{
+        content_size.x,
+        content_size.y - BannerHeight - BannerGapY
+    };
+    const Coord frame_origin{
+        content_origin.x,
+        content_origin.y + BannerHeight + BannerGapY
+    };
+    const int inner_width = frame_size.x - 2;
+
+    auto draw_text = [&](int x, int y, const std::string& text) {
+        if(x >= inner_width)
+            return;
+
+        GotoXYInit(frame_origin.x + 1 + x, frame_origin.y + 1 + y);
+        std::cout << text.substr(0, inner_width - x);
+    };
+
+    banner_origin_ = {
+        content_origin.x + (content_size.x - BannerWidth) / 2,
+        content_origin.y
+    };
+
+    DrawBanner();
+    DrawFrame(frame_origin, frame_size);
+
+    for(int y = 1; y < frame_size.y - 1; ++y) {
+        GotoXYInit(frame_origin.x + 1, frame_origin.y + y);
+        std::cout << std::string(inner_width, ' ');
+    }
+
+    const std::string title = "Bot Championship";
+    draw_text(std::max(0, (inner_width - static_cast<int>(title.size())) / 2), 0, title);
+    draw_text(2, 2, "Rounds: " + std::to_string(stats.rounds_)
+                 + "  Draws: " + std::to_string(stats.draws_)
+                 + "  Timeouts: " + std::to_string(stats.timeouts_));
+
+    for(std::size_t i = 0; i < stats.entries_.size(); ++i) {
+        const auto& entry = stats.entries_[i];
+        const int row = 5 + static_cast<int>(i) * 3;
+
+        GotoXYInit(frame_origin.x + 3, frame_origin.y + 1 + row);
+        std::cout << GetTerminalColor(entry.color_)
+                  << glyphs::SNAKE_BODY
+                  << glyphs::SNAKE_BODY
+                  << DrawSnakeHead(Direction::RIGHT)
+                  << ResetColor;
+
+        draw_text(8, row, entry.label_
+            + "  Wins: " + std::to_string(entry.wins_)
+            + "  Survived: " + std::to_string(entry.survived_rounds_));
+        draw_text(8, row + 1, "Kills: " + std::to_string(entry.total_kills_));
+    }
 }
 
 void TerminalView::Impl::DrawStatsWindow(const Model& model) const
@@ -654,6 +726,27 @@ void TerminalView::Render(Model& model)
     else
         impl_->UpdatesRender(model);
 
+    std::cout << std::flush;
+}
+
+void TerminalView::RenderBotChampionship(const BotChampionshipStats& stats)
+{
+    impl_->UpdateTerminalSize();
+
+    const Coord required_size = impl_->GetBotChampionshipSize(stats);
+    const Coord terminal_size = impl_->GetTerminalSize();
+    if(terminal_size.x < required_size.x
+    || terminal_size.y < required_size.y) {
+        impl_->ClearScreen();
+        const std::string line = "Enlarge terminal to view bot championship results";
+        impl_->GotoXYInit(
+            std::max(1, (terminal_size.x - static_cast<int>(line.size())) / 2 + 1),
+            std::max(2, terminal_size.y / 2));
+        std::cout << line << std::flush;
+        return;
+    }
+
+    impl_->DrawBotChampionship(stats);
     std::cout << std::flush;
 }
 

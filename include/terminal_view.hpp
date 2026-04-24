@@ -21,6 +21,7 @@ public:
     [[nodiscard]] std::optional<Event> PollEvents() override;
     [[nodiscard]] bool CanRenderGameplay(const Model& model) const override;
     void Render(Model& model) override;
+    void RenderBotChampionship(const BotChampionshipStats& stats) override;
 
     TerminalView();
     ~TerminalView();
@@ -72,8 +73,10 @@ public:
     [[nodiscard]] Coord GetContentSize(const Model& model) const;
     [[nodiscard]] Coord GetRequiredTerminalSize(const Model& model) const;
     [[nodiscard]] Coord GetMaxSupportedTerminalSize() const;
+    [[nodiscard]] Coord GetBotChampionshipSize(const BotChampionshipStats& stats) const;
     void DrawFrame(Coord origin, Coord size) const;
     void DrawStatsWindow(const Model& model) const;
+    void DrawBotChampionship(const BotChampionshipStats& stats);
     void DrawViewportWarning(const Model& model) const;
     void FullRender(Model& model);
     void UpdatesRender(Model&  model);
